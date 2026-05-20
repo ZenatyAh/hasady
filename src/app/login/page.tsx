@@ -1,0 +1,156 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { z } from 'zod';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { login } from '@/services/api/auth';
+import { AuthLogo } from '@/components/ui/AuthLogo';
+import { useAuthStore } from '@/lib/store';
+
+const loginSchema = z.object({
+  phone: z
+    .string()
+    .min(1, 'رقم الهاتف مطلوب')
+    .length(10, 'يجب أن يتكون رقم الهاتف من 10 أرقام')
+    .regex(/^\d+$/, 'رقم الهاتف يجب أن يحتوي على أرقام فقط')
+    .startsWith('05', 'يجب أن يبدأ رقم الهاتف ب 05'),
+  password: z.string().min(1, 'كلمة المرور مطلوبة'),
+});
+
+export default function LoginPage() {
+  const router = useRouter();
+  const setAuthSession = useAuthStore((state) => state.setAuthSession);
+
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [errors, setErrors] = useState<{ phone?: string; password?: string; general?: string }>({});
+
+  const validate = () => {
+    const result = loginSchema.safeParse({ phone, password });
+    if (result.success) {
+      setErrors({});
+      return true;
+    }
+
+    const fieldErrors = result.error.flatten().fieldErrors;
+    setErrors({
+      phone: fieldErrors.phone?.[0],
+      password: fieldErrors.password?.[0],
+    });
+    return false;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    if (!validate()) return;
+
+    try {
+      setLoading(true);
+      const res = await login({ phone, password });
+      // In a real app, save the token to context/cookies here
+      console.log('Login successful', res);
+      setAuthSession(res.token, res.user);
+      router.push('/bank-account');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
+      setErrors({ general: message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div dir="rtl" className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10">
+      <div className="w-full max-w-sm space-y-8">
+        <AuthLogo />
+
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-[#111111]">أهلاً بعودتك!</h1>
+          <p className="mt-2 text-sm text-[#888888]">
+            أدخل البيانات التالية لتتمكن من الوصول إلى حسابك
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <div className="space-y-4">
+            <Input
+              label="رقم الهاتف"
+              type="tel"
+              placeholder="0597450057"
+              inputMode="numeric"
+              maxLength={10}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+              error={errors.phone}
+              dir="ltr" // Typically phone numbers are typed LTR
+              className="text-right"
+            />
+
+            <Input
+              label="كلمة المرور"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="**************"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={errors.password}
+              dir="ltr" // Passwords are typed LTR
+              className="text-right"
+              onIconClick={() => setShowPassword(!showPassword)}
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`h-5 w-5 ${showPassword ? 'text-[#265C38]' : 'text-gray-400'}`}
+                >
+                  {showPassword ? (
+                    <>
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                      <line x1="2" y1="2" x2="22" y2="22" />
+                    </>
+                  )}
+                </svg>
+              }
+            />
+          </div>
+
+          <div className="flex items-center">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-medium text-[#111111] hover:underline"
+            >
+              هل نسيت كلمة المرور ؟
+            </Link>
+          </div>
+
+          {errors.general && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{errors.general}</div>
+          )}
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
