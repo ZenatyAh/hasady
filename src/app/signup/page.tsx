@@ -246,6 +246,16 @@ export default function SignupPage() {
               سياسة الاستخدام والخصوصية
             </Link>
           </p>
+
+          <p className="text-center text-sm text-[#888888]">
+            لديك حساب بالفعل؟{' '}
+            <Link
+              href="/login"
+              className="font-semibold text-[#111111] underline hover:text-[#265C38]"
+            >
+              تسجيل الدخول
+            </Link>
+          </p>
         </form>
       </div>
     </div>

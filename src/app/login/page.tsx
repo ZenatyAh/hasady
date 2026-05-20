@@ -149,6 +149,16 @@ export default function LoginPage() {
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
           </Button>
+
+          <p className="text-center text-sm text-[#888888]">
+            ليس لديك حساب؟{' '}
+            <Link
+              href="/signup"
+              className="font-semibold text-[#111111] underline hover:text-[#265C38]"
+            >
+              إنشاء حساب جديد
+            </Link>
+          </p>
         </form>
       </div>
     </div>
