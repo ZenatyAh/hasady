@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { AuthLogo } from '@/components/ui/AuthLogo';
 
 // ─── Illustration SVG ─────────────────────────────────────────────────────────
 
@@ -109,7 +108,6 @@ export default function BankAccountLandingPage() {
 
       {/* Main content */}
       <div className="flex w-full max-w-sm flex-col items-center space-y-8 text-center">
-        <AuthLogo />
         {/* Illustration */}
         <BankIllustration />
 

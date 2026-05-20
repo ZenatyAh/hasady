@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { recoverPassword } from '@/services/api/auth';
-import { AuthLogo } from '@/components/ui/AuthLogo';
 import { useAuthStore } from '@/lib/store';
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
@@ -117,8 +116,6 @@ export default function ForgotPasswordPage() {
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10">
       <div className="flex w-full max-w-sm flex-col items-center space-y-8">
-        <AuthLogo />
-
         {/* ── Header ───────────────────────────────────────────────────────── */}
         <div className="flex flex-col items-center text-center">
           <PadlockIcon className="h-24 w-24 mb-6" />

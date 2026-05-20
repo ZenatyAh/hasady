@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { AuthLogo } from '@/components/ui/AuthLogo';
 
 const termsSections = [
   {
@@ -28,8 +27,6 @@ export default function TermsPage() {
       className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10 text-[#111111]"
     >
       <div className="w-full max-w-2xl space-y-8">
-        <AuthLogo />
-
         <header className="space-y-3 text-center">
           <h1 className="text-2xl font-bold">سياسة الاستخدام والخصوصية</h1>
           <p className="text-sm leading-7 text-[#666666]">

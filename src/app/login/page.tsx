@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { login } from '@/services/api/auth';
-import { AuthLogo } from '@/components/ui/AuthLogo';
 import { useAuthStore } from '@/lib/store';
 
 const loginSchema = z.object({
@@ -70,8 +69,6 @@ export default function LoginPage() {
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10">
       <div className="w-full max-w-sm space-y-8">
-        <AuthLogo />
-
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[#111111]">أهلاً بعودتك!</h1>
           <p className="mt-2 text-sm text-[#888888]">

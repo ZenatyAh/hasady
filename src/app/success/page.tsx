@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { AuthLogo } from '@/components/ui/AuthLogo';
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 
@@ -35,8 +34,6 @@ export default function SuccessPage() {
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10">
       <div className="flex w-full max-w-sm flex-col items-center space-y-8 text-center">
-        <AuthLogo />
-
         {/* ── Icon & Text ─────────────────────────────────────────────────── */}
         <div className="flex flex-col items-center space-y-4">
           <div className="mb-2">

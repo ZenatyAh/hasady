@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { verifyOtp } from '@/services/api/auth';
-import { AuthLogo } from '@/components/ui/AuthLogo';
 import { useAuthStore } from '@/lib/store';
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
@@ -186,8 +185,6 @@ export default function ConfirmPage() {
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10">
       <div className="flex w-full max-w-sm flex-col items-center space-y-8">
-        <AuthLogo />
-
         {/* ── Header ───────────────────────────────────────────────────────── */}
         <div className="flex flex-col items-center text-center">
           <OtpIcon className="h-20 w-20 mb-6" />

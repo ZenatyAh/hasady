@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/Button';
 import { z } from 'zod';
 import { Input } from '@/components/ui/Input';
 import { register } from '@/services/api/auth';
-import { AuthLogo } from '@/components/ui/AuthLogo';
 import { useAuthStore } from '@/lib/store';
 
 // ─── Eye icons ────────────────────────────────────────────────────────────────
@@ -135,8 +134,6 @@ export default function SignupPage() {
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center bg-white px-6 pt-8 pb-10">
       <div className="w-full max-w-sm space-y-8">
-        <AuthLogo />
-
         {/* ── Header ───────────────────────────────────────────────────────── */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[#111111]">سجل الآن مجاناً!</h1>
