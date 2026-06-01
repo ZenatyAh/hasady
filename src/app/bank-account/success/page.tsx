@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { useAuthStore } from '@/lib/store';
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 
@@ -31,6 +34,9 @@ function PartyPopperIcon({ className }: { className?: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BankAccountSuccessPage() {
+  const user = useAuthStore((state) => state.user);
+  const targetHref = user?.role === 'BUYER' ? '/customer' : '/merchant';
+
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10">
       <div className="flex w-full max-w-sm flex-col items-center space-y-8 text-center">
@@ -47,7 +53,7 @@ export default function BankAccountSuccessPage() {
 
         {/* ── Action ───────────────────────────────────────────────────────── */}
         <div className="w-full space-y-4">
-          <Link href="/welcome" className="block">
+          <Link href={targetHref} className="block">
             <Button className="w-full py-4 text-base">إستمرار</Button>
           </Link>
 

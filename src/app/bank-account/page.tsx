@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { useAuthStore } from '@/lib/store';
 
 // ─── Illustration SVG ─────────────────────────────────────────────────────────
 
@@ -98,6 +101,9 @@ function BankIllustration() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BankAccountLandingPage() {
+  const user = useAuthStore((state) => state.user);
+  const skipTarget = user?.role === 'BUYER' ? '/customer' : '/merchant';
+
   return (
     <div
       dir="rtl"
@@ -127,7 +133,7 @@ export default function BankAccountLandingPage() {
           </Link>
 
           <Link
-            href="/welcome"
+            href={skipTarget}
             className="block text-center text-sm font-medium text-[#888888] transition hover:text-[#265C38]"
           >
             تخطي إضافة الحساب

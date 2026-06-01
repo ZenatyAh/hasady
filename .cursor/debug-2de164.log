@@ -1,0 +1,2 @@
+{"sessionId":"2de164","runId":"pre-fix","hypothesisId":"A","location":"api-client.ts:login","message":"api_call","data":{"apiMode":"mock","endpoint":"/auth/login","apiBaseSet":false,"hasAuthHeader":false},"timestamp":1780284382633}
+{"sessionId":"2de164","runId":"pre-fix","hypothesisId":"A","location":"api-client.ts:verifyOtp","message":"api_call","data":{"apiMode":"mock","endpoint":"/auth/verify","apiBaseSet":false,"hasAuthHeader":false},"timestamp":1780284382686}

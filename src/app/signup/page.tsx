@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Input } from '@/components/ui/Input';
 import { register } from '@/services/api/auth';
 import { useAuthStore } from '@/lib/store';
+import { useGuestGuard } from '@/lib/use-guest-guard';
 
 // ─── Eye icons ────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ interface FormErrors {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SignupPage() {
+  const { isReady } = useGuestGuard();
   const router = useRouter();
   const setPendingOtp = useAuthStore((state) => state.setPendingOtp);
 
@@ -87,7 +89,12 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<'BUYER' | 'MERCHANT'>('BUYER');
   const [errors, setErrors] = useState<FormErrors>({});
+
+  if (!isReady) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +113,7 @@ export default function SignupPage() {
 
     try {
       setLoading(true);
-      const res = await register({ name: name.trim(), phone, password });
+      const res = await register({ name: name.trim(), phone, password, role });
 
       /**
        * ⚡ Backend integration point:
@@ -118,6 +125,9 @@ export default function SignupPage() {
        *   router.push('/dashboard');
        */
       console.log('Registration successful', res);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('mahaseel-pending-role', role);
+      }
       setPendingOtp(phone, 'register');
       router.push('/confirm');
     } catch (err: unknown) {
@@ -144,6 +154,32 @@ export default function SignupPage() {
 
         {/* ── Form ─────────────────────────────────────────────────────────── */}
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
+          {/* Role Selector */}
+          <div className="flex rounded-lg bg-[#f0ebde] p-1 mb-2">
+            <button
+              type="button"
+              onClick={() => setRole('BUYER')}
+              className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition ${
+                role === 'BUYER'
+                  ? 'bg-[#265C38] text-white shadow-sm'
+                  : 'text-[#888888] hover:text-[#111111]'
+              }`}
+            >
+              مشتري (مستهلك)
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('MERCHANT')}
+              className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition ${
+                role === 'MERCHANT'
+                  ? 'bg-[#265C38] text-white shadow-sm'
+                  : 'text-[#888888] hover:text-[#111111]'
+              }`}
+            >
+              تاجر (مزارع)
+            </button>
+          </div>
+
           {/* Full name */}
           <Input
             id="signup-name"

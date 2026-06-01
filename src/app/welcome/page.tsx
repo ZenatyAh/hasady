@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { useGuestGuard } from '@/lib/use-guest-guard';
 
 const slides = [
   {
@@ -26,8 +27,13 @@ const slides = [
 ];
 
 export default function WelcomePage() {
+  const { isReady } = useGuestGuard();
   const [index, setIndex] = useState(0);
   const router = useRouter();
+
+  if (!isReady) {
+    return null;
+  }
 
   function next() {
     setIndex((prevIndex) => {

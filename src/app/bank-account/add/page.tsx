@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { addBankAccount } from '@/services/api/auth';
+import { useAuthStore } from '@/lib/store';
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ type FormErrors = {
 
 export default function AddBankAccountPage() {
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
 
   const [bankName, setBankName] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
@@ -64,11 +66,14 @@ export default function AddBankAccountPage() {
 
     try {
       setLoading(true);
-      const res = await addBankAccount({
-        bankName: bankName.trim(),
-        accountHolderName: accountHolderName.trim(),
-        accountNumber,
-      });
+      const res = await addBankAccount(
+        {
+          bankName: bankName.trim(),
+          accountHolderName: accountHolderName.trim(),
+          accountNumber,
+        },
+        token
+      );
 
       /**
        * ⚡ Backend integration point:
@@ -178,12 +183,11 @@ export default function AddBankAccountPage() {
           {/* Bottom link */}
           <div className="pt-4 text-center">
             <p className="text-sm text-[#111111]">
-              تذكرت كلمة المرور ؟{' '}
               <Link
-                href="/login"
+                href="/merchant"
                 className="font-semibold text-[#265C38] transition hover:underline"
               >
-                تسجيل الدخول
+                العودة للرئيسية
               </Link>
             </p>
           </div>

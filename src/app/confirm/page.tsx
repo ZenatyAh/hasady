@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { verifyOtp } from '@/services/api/auth';
 import { useAuthStore } from '@/lib/store';
+import { useGuestGuard } from '@/lib/use-guest-guard';
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ function OtpIcon({ className }: { className?: string }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ConfirmPage() {
+  const { isReady } = useGuestGuard();
   const router = useRouter();
 
   const [code, setCode] = useState<string[]>(Array(6).fill(''));
@@ -77,6 +79,7 @@ export default function ConfirmPage() {
   const pendingPhone = useAuthStore((state) => state.pendingPhone);
   const otpIntent = useAuthStore((state) => state.otpIntent);
   const clearPendingOtp = useAuthStore((state) => state.clearPendingOtp);
+  const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const phone = pendingPhone ?? '';
   const activeOtpIntent = otpIntent ?? 'register';
 
@@ -96,6 +99,10 @@ export default function ConfirmPage() {
     }, 1000);
     return () => clearInterval(timerId);
   }, [hasHydrated, phone, timeLeft]);
+
+  if (!isReady) {
+    return null;
+  }
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -154,14 +161,30 @@ export default function ConfirmPage() {
 
     try {
       setLoading(true);
-      const res = await verifyOtp({ phone, code: otpCode });
+      let pendingRole: 'BUYER' | 'MERCHANT' | undefined = undefined;
+      if (typeof window !== 'undefined') {
+        const storedRole = sessionStorage.getItem('mahaseel-pending-role');
+        if (storedRole === 'BUYER' || storedRole === 'MERCHANT') {
+          pendingRole = storedRole;
+        }
+      }
+      const res = await verifyOtp({ phone, code: otpCode, role: pendingRole });
       console.log('OTP Verified', res);
 
       if (activeOtpIntent === 'reset') {
         router.push('/reset-password');
       } else {
+        const willSetAuthSession = Boolean(res.token && res.user);
+        if (willSetAuthSession && res.token && res.user) {
+          setAuthSession(res.token, res.user);
+        }
         clearPendingOtp();
-        router.push('/success');
+        if (willSetAuthSession) {
+          const target = res.user?.role === 'BUYER' ? '/customer' : '/merchant';
+          router.push(target);
+        } else {
+          router.push('/success');
+        }
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');

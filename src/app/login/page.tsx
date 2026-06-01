@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { login } from '@/services/api/auth';
 import { useAuthStore } from '@/lib/store';
+import { useGuestGuard } from '@/lib/use-guest-guard';
 
 const loginSchema = z.object({
   phone: z
@@ -20,6 +21,7 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
+  const { isReady } = useGuestGuard();
   const router = useRouter();
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
 
@@ -27,8 +29,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<'BUYER' | 'MERCHANT'>('BUYER');
 
   const [errors, setErrors] = useState<{ phone?: string; password?: string; general?: string }>({});
+
+  if (!isReady) {
+    return null;
+  }
 
   const validate = () => {
     const result = loginSchema.safeParse({ phone, password });
@@ -53,10 +60,13 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const res = await login({ phone, password });
+      const res = await login({ phone, password, role });
       // In a real app, save the token to context/cookies here
       console.log('Login successful', res);
       setAuthSession(res.token, res.user);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('mahaseel-pending-role', role);
+      }
       router.push('/bank-account');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
@@ -78,6 +88,32 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
+            {/* Role Selector */}
+            <div className="flex rounded-lg bg-[#f0ebde] p-1">
+              <button
+                type="button"
+                onClick={() => setRole('BUYER')}
+                className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition ${
+                  role === 'BUYER'
+                    ? 'bg-[#265C38] text-white shadow-sm'
+                    : 'text-[#888888] hover:text-[#111111]'
+                }`}
+              >
+                مشتري (مستهلك)
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('MERCHANT')}
+                className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition ${
+                  role === 'MERCHANT'
+                    ? 'bg-[#265C38] text-white shadow-sm'
+                    : 'text-[#888888] hover:text-[#111111]'
+                }`}
+              >
+                تاجر (مزارع)
+              </button>
+            </div>
+
             <Input
               label="رقم الهاتف"
               type="tel"

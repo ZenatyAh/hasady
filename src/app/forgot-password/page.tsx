@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { recoverPassword } from '@/services/api/auth';
 import { useAuthStore } from '@/lib/store';
+import { useGuestGuard } from '@/lib/use-guest-guard';
 
 // ─── SVG Icons ───────────────────────────────────────────────────────────────
 
@@ -70,12 +71,17 @@ const recoverSchema = z.object({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ForgotPasswordPage() {
+  const { isReady } = useGuestGuard();
   const router = useRouter();
   const setPendingOtp = useAuthStore((state) => state.setPendingOtp);
 
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ phone?: string; general?: string }>({});
+
+  if (!isReady) {
+    return null;
+  }
 
   const validate = () => {
     const result = recoverSchema.safeParse({ phone });

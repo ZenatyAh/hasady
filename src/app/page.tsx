@@ -3,17 +3,21 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useGuestGuard } from '@/lib/use-guest-guard';
 
 export default function SplashPage() {
   const router = useRouter();
+  const { hasHydrated, token } = useGuestGuard();
 
   useEffect(() => {
-    // Redirect to welcome page after 2.5 seconds
+    // Only set up the timer if store is hydrated and the user is NOT logged in
+    if (!hasHydrated || token) return;
+
     const timer = setTimeout(() => {
       router.push('/welcome');
     }, 2500);
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [hasHydrated, token, router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#18181b] text-[#265C38]">
@@ -21,7 +25,7 @@ export default function SplashPage() {
         <div className="relative h-48 w-64 overflow-hidden">
           {/* Replace src with the actual logo image path when available */}
           <Image
-            src="/images/logo.png"
+            src="/images/onboard4.svg"
             alt="Mahaseel Logo"
             fill
             className="object-contain"

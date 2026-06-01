@@ -7,7 +7,7 @@ export function AuthLogo() {
   return (
     <div className="flex w-full justify-center">
       <Image
-        src="/images/logo.png"
+        src="/images/onboard4.svg"
         alt="شعار محاصيل"
         width={140}
         height={140}

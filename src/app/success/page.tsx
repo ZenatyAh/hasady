@@ -1,7 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-
-// ─── SVG Icons ───────────────────────────────────────────────────────────────
+import { useAuthStore } from '@/lib/store';
 
 function PartyPopperIcon({ className }: { className?: string }) {
   return (
@@ -28,27 +29,30 @@ function PartyPopperIcon({ className }: { className?: string }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function SuccessPage() {
+  const token = useAuthStore((state) => state.token);
+  const hasSession = Boolean(token);
+
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center bg-[#fdfcfa] px-6 pt-8 pb-10">
       <div className="flex w-full max-w-sm flex-col items-center space-y-8 text-center">
-        {/* ── Icon & Text ─────────────────────────────────────────────────── */}
         <div className="flex flex-col items-center space-y-4">
           <div className="mb-2">
             <PartyPopperIcon className="h-24 w-24 text-[#265C38]" />
           </div>
           <h1 className="text-2xl font-bold text-[#111111]">تم التفعيل بنجاح!</h1>
           <p className="text-sm leading-relaxed text-[#888888]">
-            لقد تم تأكيد حسابك بنجاح. يمكنك الآن تسجيل الدخول والبدء في استخدام التطبيق بكل سهولة!
+            {hasSession
+              ? 'تم تأكيد حسابك. يمكنك المتابعة إلى التطبيق الآن.'
+              : 'لقد تم تأكيد حسابك بنجاح. يمكنك الآن تسجيل الدخول والبدء في استخدام التطبيق بكل سهولة!'}
           </p>
         </div>
 
-        {/* ── Action ───────────────────────────────────────────────────────── */}
         <div className="w-full space-y-4">
-          <Link href="/login" className="block">
-            <Button className="w-full py-4 text-base">تسجيل دخول</Button>
+          <Link href={hasSession ? '/merchant' : '/login'} className="block">
+            <Button className="w-full py-4 text-base">
+              {hasSession ? 'متابعة' : 'تسجيل دخول'}
+            </Button>
           </Link>
 
           <div className="pt-2">

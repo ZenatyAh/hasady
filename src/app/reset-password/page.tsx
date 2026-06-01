@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { resetPassword } from '@/services/api/auth';
 import { useAuthStore } from '@/lib/store';
+import { useGuestGuard } from '@/lib/use-guest-guard';
 
 // ─── Eye icons ────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ const resetSchema = z
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ResetPasswordPage() {
+  const { isReady } = useGuestGuard();
   const router = useRouter();
 
   const [password, setPassword] = useState('');
@@ -140,6 +142,10 @@ export default function ResetPasswordPage() {
       router.replace('/forgot-password');
     }
   }, [hasHydrated, otpIntent, phone, router]);
+
+  if (!isReady) {
+    return null;
+  }
 
   const validate = () => {
     const result = resetSchema.safeParse({ password, confirmPassword });
