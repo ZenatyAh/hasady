@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mahaseel
 
-## Getting Started
+Mahaseel is a comprehensive agricultural e-commerce platform that connects buyers with merchants (farmers). It facilitates the buying and selling of agricultural products through fixed-price listings and live auctions.
 
-First, run the development server:
+## 🚀 Tech Stack
+
+This project is built using modern web technologies to ensure a high-performance, responsive, and scalable user experience:
+
+- **Framework:** [Next.js 16 (App Router)](https://nextjs.org/)
+- **UI Library:** [React 19](https://react.dev/)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **State Management:** [Zustand](https://zustand-demo.pmnd.rs/)
+- **Form Validation:** [Zod](https://zod.dev/)
+
+## ✨ Key Features
+
+The application supports three primary user roles: **Buyer**, **Merchant**, and **Admin**.
+
+- **Authentication & Authorization:** Secure JWT-based authentication with role-based access control (`Buyer`, `Merchant`, `Admin`).
+- **Product Management:** Merchants can manage farms and list products for sale with media uploads.
+- **Auctions & Bidding:** Live auction system where buyers can place bids, and merchants can accept the highest bids.
+- **Order Processing:** End-to-end order flow from placement to delivery confirmation.
+- **Payments & Wallet:** Integrated payment processing (via Moyasar webhook support), merchant wallets, and withdrawal management.
+- **Real-time Notifications:** Server-Sent Events (SSE) for live, instant notification delivery.
+- **Ratings & Reviews:** Buyers can rate their completed orders, ensuring trust within the marketplace.
+- **Admin Dashboard:** Comprehensive administration tools to oversee users, farms, products, disputes, and platform analytics.
+
+## 🛠 Getting Started
+
+### Prerequisites
+
+Make sure you have [Node.js](https://nodejs.org/) (v20+ recommended) and `npm` installed.
+
+### Installation
+
+1. Clone the repository and navigate to the project directory:
+   ```bash
+   cd hasady
+   ```
+
+2. Install the dependencies:
+   ```bash
+   npm install
+   ```
+
+### Environment Setup
+
+Create a `.env.local` file in the root directory by copying the example file:
+
+```bash
+cp .env.example .env.local
+```
+
+Update `.env.local` with your local backend configuration:
+```env
+# Base URL for the Mahaseel backend (no trailing slash).
+# When unset, the app uses built-in mock API responses for local development.
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+### Running the Application
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📜 Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev`: Starts the Next.js development server.
+- `npm run build`: Creates an optimized production build.
+- `npm run start`: Starts the production server (requires a build first).
+- `npm run lint`: Runs ESLint to check for code quality issues.
+- `npm run format`: Formats the codebase using Prettier.
 
-## Learn More
+## 🏗 Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+- `src/app`: Contains the Next.js App Router pages and layouts for different user flows (e.g., `/customer`, `/merchant`, `/signup`).
+- `src/components`: Reusable UI components used throughout the application.
+- `public`: Static assets like images and icons.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔌 API Integration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The frontend connects to the Mahaseel backend API. For detailed information about available endpoints, authentication rules, and payload structures, please refer to the [`MAHASEEL_API_QUICK_REFERENCE.md`](./MAHASEEL_API_QUICK_REFERENCE.md) file included in the repository.
