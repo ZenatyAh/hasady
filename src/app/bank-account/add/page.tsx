@@ -66,7 +66,7 @@ export default function AddBankAccountPage() {
 
     try {
       setLoading(true);
-      const res = await addBankAccount(
+      await addBankAccount(
         {
           bankName: bankName.trim(),
           accountHolderName: accountHolderName.trim(),
@@ -80,7 +80,6 @@ export default function AddBankAccountPage() {
        *   - Save res.accountId to user context / state
        *   - Example: userStore.setBankAccountId(res.accountId);
        */
-      console.log('Bank account added', res);
       router.push('/bank-account/success');
     } catch (err: unknown) {
       setErrors({
