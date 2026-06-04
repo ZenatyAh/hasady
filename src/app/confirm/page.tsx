@@ -78,6 +78,7 @@ export default function ConfirmPage() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const pendingPhone = useAuthStore((state) => state.pendingPhone);
   const otpIntent = useAuthStore((state) => state.otpIntent);
+  const pendingRole = useAuthStore((state) => state.pendingRole);
   const clearPendingOtp = useAuthStore((state) => state.clearPendingOtp);
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const phone = pendingPhone ?? '';
@@ -161,15 +162,7 @@ export default function ConfirmPage() {
 
     try {
       setLoading(true);
-      let pendingRole: 'BUYER' | 'MERCHANT' | undefined = undefined;
-      if (typeof window !== 'undefined') {
-        const storedRole = sessionStorage.getItem('mahaseel-pending-role');
-        if (storedRole === 'BUYER' || storedRole === 'MERCHANT') {
-          pendingRole = storedRole;
-        }
-      }
-      const res = await verifyOtp({ phone, code: otpCode, role: pendingRole });
-      console.log('OTP Verified', res);
+      const res = await verifyOtp({ phone, code: otpCode, role: pendingRole ?? undefined });
 
       if (activeOtpIntent === 'reset') {
         router.push('/reset-password');
@@ -231,6 +224,9 @@ export default function ConfirmPage() {
                 }}
                 type="text"
                 inputMode="numeric"
+                aria-label={`رقم ${index + 1} من رمز التحقق`}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'otp-error' : undefined}
                 maxLength={1} // Only 1 digit per box to prevent overflow/hiding
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
@@ -262,6 +258,7 @@ export default function ConfirmPage() {
 
           {error && (
             <div
+              id="otp-error"
               role="alert"
               className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 text-center"
             >
