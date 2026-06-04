@@ -105,8 +105,7 @@ export default function ForgotPasswordPage() {
 
     try {
       setLoading(true);
-      const res = await recoverPassword({ phone });
-      console.log('Recovery request successful', res);
+      await recoverPassword({ phone });
 
       setPendingOtp(phone, 'reset');
       router.push('/confirm');

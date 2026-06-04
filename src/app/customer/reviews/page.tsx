@@ -2,8 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
 
 interface Review {
   id: string;
@@ -14,30 +13,35 @@ interface Review {
   date: string;
 }
 
-export default function CustomerReviewsPage() {
-  const [reviews, setReviews] = useState<Review[]>([]);
+const DEFAULT_REVIEWS: Review[] = [
+  {
+    id: 'rev-1',
+    merchantName: 'مزرعة الخيرات النجدية',
+    cropName: 'طماطم شيري',
+    rating: 5,
+    comment: 'منتجات نظيفة جداً وتعبئة ممتازة وسرعة عالية في الاستجابة والشحن.',
+    date: '28-05-2026',
+  },
+];
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('hasady-reviews');
-      if (stored) {
-        setReviews(JSON.parse(stored));
-      } else {
-        const defaultReviews: Review[] = [
-          {
-            id: 'rev-1',
-            merchantName: 'مزرعة الخيرات النجدية',
-            cropName: 'طماطم شيري',
-            rating: 5,
-            comment: 'منتجات نظيفة جداً وتعبئة ممتازة وسرعة عالية في الاستجابة والشحن.',
-            date: '28-05-2026',
-          },
-        ];
-        sessionStorage.setItem('hasady-reviews', JSON.stringify(defaultReviews));
-        setReviews(defaultReviews);
-      }
+function loadStoredReviews(): Review[] {
+  if (typeof window === 'undefined') return [];
+
+  const stored = sessionStorage.getItem('hasady-reviews');
+  if (stored) {
+    try {
+      return JSON.parse(stored) as Review[];
+    } catch {
+      sessionStorage.removeItem('hasady-reviews');
     }
-  }, []);
+  }
+
+  sessionStorage.setItem('hasady-reviews', JSON.stringify(DEFAULT_REVIEWS));
+  return DEFAULT_REVIEWS;
+}
+
+export default function CustomerReviewsPage() {
+  const [reviews] = useState<Review[]>(loadStoredReviews);
 
   return (
     <div className="space-y-6">
@@ -67,7 +71,9 @@ export default function CustomerReviewsPage() {
               <div className="flex justify-between items-start gap-4">
                 <div className="space-y-1">
                   <h3 className="text-base font-extrabold text-[#111111]">{rev.merchantName}</h3>
-                  <span className="text-[10px] text-gray-400 font-semibold">{rev.cropName} • {rev.date}</span>
+                  <span className="text-[10px] text-gray-400 font-semibold">
+                    {rev.cropName} • {rev.date}
+                  </span>
                 </div>
 
                 {/* Stars */}

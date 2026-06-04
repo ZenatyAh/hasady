@@ -61,12 +61,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
       const res = await login({ phone, password, role });
-      // In a real app, save the token to context/cookies here
-      console.log('Login successful', res);
       setAuthSession(res.token, res.user);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('mahaseel-pending-role', role);
-      }
       router.push('/bank-account');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';

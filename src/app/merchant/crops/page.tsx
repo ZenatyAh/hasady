@@ -26,7 +26,7 @@ export default function CropsListPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     getCrops(token)
       .then((data) => {

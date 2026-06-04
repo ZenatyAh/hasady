@@ -19,7 +19,7 @@ export default function PurchaseRequestsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     getIncomingOrders(token)
       .then((data) => {

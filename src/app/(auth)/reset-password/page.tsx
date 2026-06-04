@@ -174,8 +174,7 @@ export default function ResetPasswordPage() {
 
     try {
       setLoading(true);
-      const res = await resetPassword({ phone, password });
-      console.log('Password reset successful', res);
+      await resetPassword({ phone, password });
 
       clearPendingOtp();
       router.push('/reset-success');

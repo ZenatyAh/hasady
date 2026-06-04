@@ -3,7 +3,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
 import { PageHeader } from '@/components/merchant/PageHeader';
 
@@ -48,8 +47,6 @@ const DEFAULT_TRACK_ORDERS: TrackOrder[] = [
 
 export default function OrderTrackingPage() {
   const { isReady } = useAuthGuard();
-  const token = useAuthStore((state) => state.token);
-
   const [orders, setOrders] = useState<TrackOrder[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = sessionStorage.getItem('hasady-track-orders');
@@ -66,7 +63,7 @@ export default function OrderTrackingPage() {
     }
     return DEFAULT_TRACK_ORDERS;
   });
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<TrackOrder | null>(null);
   const [newStatus, setNewStatus] = useState<TrackOrder['status']>('PREPARING');
   const [isModalOpen, setIsModalOpen] = useState(false);

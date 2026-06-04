@@ -113,7 +113,7 @@ export default function SignupPage() {
 
     try {
       setLoading(true);
-      const res = await register({ name: name.trim(), phone, password, role });
+      await register({ name: name.trim(), phone, password, role });
 
       /**
        * ⚡ Backend integration point:
@@ -124,11 +124,7 @@ export default function SignupPage() {
        *   document.cookie = `token=${res.token}; path=/`;
        *   router.push('/dashboard');
        */
-      console.log('Registration successful', res);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('mahaseel-pending-role', role);
-      }
-      setPendingOtp(phone, 'register');
+      setPendingOtp(phone, 'register', role);
       router.push('/confirm');
     } catch (err: unknown) {
       const message =

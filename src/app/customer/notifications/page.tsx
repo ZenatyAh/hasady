@@ -3,7 +3,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 
 interface Notification {
   id: string;
@@ -51,7 +50,9 @@ export default function CustomerNotificationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#f0ebde]/45 pb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-[#111111]">التنبيهات والإشعارات</h1>
-          <p className="text-xs text-gray-400 mt-1">تلقي تحديثات فورية حول طلباتك ومزايداتك ومحفظتك</p>
+          <p className="text-xs text-gray-400 mt-1">
+            تلقي تحديثات فورية حول طلباتك ومزايداتك ومحفظتك
+          </p>
         </div>
 
         <button
@@ -66,7 +67,9 @@ export default function CustomerNotificationsPage() {
         <div className="bg-[#fdfcfa] rounded-3xl border border-dashed border-[#f0ebde] p-16 text-center max-w-sm mx-auto space-y-3">
           <span className="text-4xl">🔔</span>
           <h3 className="text-lg font-bold text-[#111111]">لا توجد إشعارات جديدة</h3>
-          <p className="text-sm text-[#888888]">عند حدوث أي مستجدات على طلباتك أو سوماتك ستظهر هنا.</p>
+          <p className="text-sm text-[#888888]">
+            عند حدوث أي مستجدات على طلباتك أو سوماتك ستظهر هنا.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -74,9 +77,7 @@ export default function CustomerNotificationsPage() {
             <div
               key={not.id}
               className={`border rounded-2xl p-5 shadow-sm transition flex flex-col gap-2 relative ${
-                not.isRead
-                  ? 'bg-white border-[#f0ebde]/60'
-                  : 'bg-[#e8f1eb]/30 border-[#265C38]/20'
+                not.isRead ? 'bg-white border-[#f0ebde]/60' : 'bg-[#e8f1eb]/30 border-[#265C38]/20'
               }`}
             >
               {/* Unread dot indicator */}

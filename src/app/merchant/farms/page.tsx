@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
-import { agentLog } from '@/lib/agent-debug';
 import { getFarms, Farm } from '@/services/api/farms';
 import { PageHeader } from '@/components/merchant/PageHeader';
 import { FarmCard } from '@/components/merchant/FarmCard';
@@ -20,24 +19,10 @@ export default function FarmsListPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     getFarms(token)
       .then((data) => {
-        // #region agent log
-        agentLog(
-          'merchant/farms/page.tsx:load',
-          'farms_list_loaded',
-          {
-            count: data.length,
-            statuses: data.reduce<Record<string, number>>((acc, f) => {
-              acc[f.status] = (acc[f.status] ?? 0) + 1;
-              return acc;
-            }, {}),
-          },
-          'D'
-        );
-        // #endregion
         setFarms(data);
       })
       .catch((err) => {

@@ -17,7 +17,7 @@ export default function BankAccountInfoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     getDefaultBankAccount(token)
       .then((data) => {

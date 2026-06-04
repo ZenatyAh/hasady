@@ -23,7 +23,7 @@ export default function EditCropPage({ params }: EditCropPageProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isReady || !token || !id) return;
+    if (!isReady || !id) return;
 
     getCropById(id, token)
       .then((data) => {

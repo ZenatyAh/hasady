@@ -26,7 +26,7 @@ export default function FarmDetailPage({ params }: FarmDetailPageProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isReady || !token || !id) return;
+    if (!isReady || !id) return;
 
     const loadData = async () => {
       try {

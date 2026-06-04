@@ -7,17 +7,17 @@ import { useGuestGuard } from '@/lib/use-guest-guard';
 
 export default function SplashPage() {
   const router = useRouter();
-  const { hasHydrated, token } = useGuestGuard();
+  const { hasHydrated, isAuthenticated } = useGuestGuard();
 
   useEffect(() => {
     // Only set up the timer if store is hydrated and the user is NOT logged in
-    if (!hasHydrated || token) return;
+    if (!hasHydrated || isAuthenticated) return;
 
     const timer = setTimeout(() => {
       router.push('/welcome');
     }, 2500);
     return () => clearTimeout(timer);
-  }, [hasHydrated, token, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#18181b] text-[#265C38]">

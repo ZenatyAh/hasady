@@ -42,7 +42,8 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
   return apiPost('/auth/login', credentials, () =>
     mockDelay(() => {
       // Default to MERCHANT if logging in with the predefined admin/merchant credentials
-      const selectedRole = credentials.role || (credentials.phone === '0597450057' ? 'MERCHANT' : 'BUYER');
+      const selectedRole =
+        credentials.role || (credentials.phone === '0597450057' ? 'MERCHANT' : 'BUYER');
       if (credentials.phone === '0597450057' && credentials.password === '123456') {
         return {
           token: 'mock-jwt-token-12345',
@@ -52,7 +53,12 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       // For any other number, log them in as the selected role or BUYER
       return {
         token: `mock-jwt-token-${Date.now()}`,
-        user: { id: String(Date.now()), phone: credentials.phone, name: 'مستخدم محاصيل', role: selectedRole },
+        user: {
+          id: String(Date.now()),
+          phone: credentials.phone,
+          name: 'مستخدم محاصيل',
+          role: selectedRole,
+        },
       };
     })
   );
@@ -114,7 +120,12 @@ export async function verifyOtp(credentials: VerifyOtpCredentials): Promise<Veri
           success: true,
           message: 'تم تفعيل الحساب بنجاح',
           token: 'mock-verified-token',
-          user: { id: '1', phone: credentials.phone, name: 'Verified User', role: credentials.role || 'BUYER' },
+          user: {
+            id: '1',
+            phone: credentials.phone,
+            name: 'Verified User',
+            role: credentials.role || 'BUYER',
+          },
         };
       }
       throw new Error('رمز التحقق غير صحيح');

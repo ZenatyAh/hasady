@@ -5,28 +5,34 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { User } from '@/services/api/auth';
 
 export type OtpIntent = 'register' | 'reset';
+export type AuthRole = 'BUYER' | 'MERCHANT';
 
 export type AuthSessionState = {
   token: string | null;
   user: User | null;
   pendingPhone: string | null;
   otpIntent: OtpIntent | null;
+  pendingRole: AuthRole | null;
   hasHydrated: boolean;
-  setAuthSession: (token: string, user: User) => void;
-  setPendingOtp: (phone: string, intent: OtpIntent) => void;
+  setAuthSession: (token: string | null, user: User) => void;
+  setPendingOtp: (phone: string, intent: OtpIntent, role?: AuthRole) => void;
   clearPendingOtp: () => void;
   clearAuthSession: () => void;
   clearAllAuthState: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 };
 
-type PersistedAuthState = Pick<AuthSessionState, 'token' | 'user' | 'pendingPhone' | 'otpIntent'>;
+type PersistedAuthState = Pick<
+  AuthSessionState,
+  'user' | 'pendingPhone' | 'otpIntent' | 'pendingRole'
+>;
 
 const initialAuthState = {
   token: null,
   user: null,
   pendingPhone: null,
   otpIntent: null,
+  pendingRole: null,
   hasHydrated: false,
 };
 
@@ -35,8 +41,9 @@ export const useAuthStore = create<AuthSessionState>()(
     (set) => ({
       ...initialAuthState,
       setAuthSession: (token, user) => set({ token, user }),
-      setPendingOtp: (phone, intent) => set({ pendingPhone: phone, otpIntent: intent }),
-      clearPendingOtp: () => set({ pendingPhone: null, otpIntent: null }),
+      setPendingOtp: (phone, intent, role) =>
+        set({ pendingPhone: phone, otpIntent: intent, pendingRole: role ?? null }),
+      clearPendingOtp: () => set({ pendingPhone: null, otpIntent: null, pendingRole: null }),
       clearAuthSession: () => set({ token: null, user: null }),
       clearAllAuthState: () =>
         set((state) => ({
@@ -47,12 +54,13 @@ export const useAuthStore = create<AuthSessionState>()(
     }),
     {
       name: 'mahaseel-auth-session',
+      // Mock mode only: production auth must use HttpOnly secure cookies managed by the backend/BFF.
       storage: createJSONStorage<PersistedAuthState>(() => sessionStorage),
       partialize: (state) => ({
-        token: state.token,
         user: state.user,
         pendingPhone: state.pendingPhone,
         otpIntent: state.otpIntent,
+        pendingRole: state.pendingRole,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

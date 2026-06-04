@@ -60,7 +60,9 @@ export default function CustomerWalletPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card A: Current Balance */}
         <div className="bg-gradient-to-br from-[#265C38] to-[#1f4f2c] rounded-[2.5rem] p-8 text-right text-white shadow-md relative overflow-hidden">
-          <div className="absolute right-0 bottom-0 opacity-10 translate-y-6 translate-x-6 text-9xl">💳</div>
+          <div className="absolute right-0 bottom-0 opacity-10 translate-y-6 translate-x-6 text-9xl">
+            💳
+          </div>
           <div className="space-y-2 relative z-10">
             <span className="text-xs text-green-200 font-bold">الرصيد المتاح بالمحفظة</span>
             <div className="flex items-baseline gap-2">
@@ -95,7 +97,9 @@ export default function CustomerWalletPage() {
 
       {/* Transactions Table */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-[#111111] text-right">كشف الحساب والعمليات الأخيرة</h2>
+        <h2 className="text-lg font-bold text-[#111111] text-right">
+          كشف الحساب والعمليات الأخيرة
+        </h2>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-3">
@@ -110,7 +114,9 @@ export default function CustomerWalletPage() {
                 className="bg-white border border-[#f0ebde]/75 rounded-2xl p-4 flex items-center justify-between shadow-sm"
               >
                 <div className="flex items-center gap-3 text-right">
-                  <span className={`text-xl p-2 rounded-xl ${tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'}`}>
+                  <span
+                    className={`text-xl p-2 rounded-xl ${tx.type === 'deposit' ? 'bg-green-50' : 'bg-red-50'}`}
+                  >
                     {tx.type === 'deposit' ? '💰' : '🛒'}
                   </span>
                   <div>
@@ -120,8 +126,11 @@ export default function CustomerWalletPage() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <span className={`text-sm font-extrabold ${tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                    {tx.type === 'deposit' ? '+' : '-'}{tx.amount} ريال
+                  <span
+                    className={`text-sm font-extrabold ${tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {tx.type === 'deposit' ? '+' : '-'}
+                    {tx.amount} ريال
                   </span>
                   <span className="text-[10px] bg-green-50 text-green-600 px-2 py-1 rounded-lg font-bold">
                     {tx.status}

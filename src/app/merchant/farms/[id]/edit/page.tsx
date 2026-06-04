@@ -23,7 +23,7 @@ export default function EditFarmPage({ params }: EditFarmPageProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isReady || !token || !id) return;
+    if (!isReady || !id) return;
 
     getFarmById(id, token)
       .then((data) => {

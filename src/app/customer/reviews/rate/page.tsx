@@ -80,7 +80,9 @@ function RateMerchantFormContent() {
 
         {/* Comment Textarea */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-[#333333] block">اكتب تعليقك ورأيك بالتفصيل:</label>
+          <label className="text-xs font-bold text-[#333333] block">
+            اكتب تعليقك ورأيك بالتفصيل:
+          </label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
@@ -114,12 +116,14 @@ function RateMerchantFormContent() {
 
 export default function CustomerRatePage() {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col items-center justify-center py-24 space-y-4">
-        <div className="h-10 w-10 border-4 border-[#e8f1eb] border-t-[#265C38] rounded-full animate-spin" />
-        <span className="text-sm text-gray-500 font-bold">جاري التحميل...</span>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <div className="h-10 w-10 border-4 border-[#e8f1eb] border-t-[#265C38] rounded-full animate-spin" />
+          <span className="text-sm text-gray-500 font-bold">جاري التحميل...</span>
+        </div>
+      }
+    >
       <RateMerchantFormContent />
     </Suspense>
   );
