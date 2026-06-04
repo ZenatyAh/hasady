@@ -1,88 +1,126 @@
 # Mahaseel
 
-Mahaseel is a comprehensive agricultural e-commerce platform that connects buyers with merchants (farmers). It facilitates the buying and selling of agricultural products through fixed-price listings and live auctions.
+Mahaseel is a frontend web application for an agricultural marketplace. It supports buyer and merchant flows for browsing crops, managing farms/crops, mock purchase orders, wallets, reviews, and notifications.
 
-## 🚀 Tech Stack
+The backend is not connected by default. When `NEXT_PUBLIC_API_URL` is not set, the app runs in mock API mode and stores demo data in browser session storage.
 
-This project is built using modern web technologies to ensure a high-performance, responsive, and scalable user experience:
+## Tech Stack
 
-- **Framework:** [Next.js 16 (App Router)](https://nextjs.org/)
-- **UI Library:** [React 19](https://react.dev/)
-- **Language:** [TypeScript](https://www.typescriptlang.org/)
-- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **State Management:** [Zustand](https://zustand-demo.pmnd.rs/)
-- **Form Validation:** [Zod](https://zod.dev/)
+- **Framework:** Next.js 16 App Router
+- **UI:** React 19
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **Client state:** Zustand
+- **Server/cache provider:** TanStack React Query provider is configured for future remote data usage
+- **Validation:** Zod for form/API validation where runtime parsing is needed
+- **Quality:** ESLint, Prettier, Husky, lint-staged
 
-## ✨ Key Features
+## Implemented Frontend Flows
 
-The application supports three primary user roles: **Buyer**, **Merchant**, and **Admin**.
+- Buyer authentication mock flow: signup, login, OTP confirmation, reset password.
+- Merchant authentication mock flow: signup, login, OTP confirmation.
+- Role-aware client route guards for `/customer` and `/merchant` sections.
+- Buyer crop browsing, crop detail, fixed purchase, auction bid, orders, wallet, reviews, notifications, and profile pages.
+- Merchant dashboard, farms, crops, orders, wallet, reviews, notifications, and profile pages.
+- Mock API fallback for local development without backend services.
 
-- **Authentication & Authorization:** Secure JWT-based authentication with role-based access control (`Buyer`, `Merchant`, `Admin`).
-- **Product Management:** Merchants can manage farms and list products for sale with media uploads.
-- **Auctions & Bidding:** Live auction system where buyers can place bids, and merchants can accept the highest bids.
-- **Order Processing:** End-to-end order flow from placement to delivery confirmation.
-- **Payments & Wallet:** Integrated payment processing (via Moyasar webhook support), merchant wallets, and withdrawal management.
-- **Real-time Notifications:** Server-Sent Events (SSE) for live, instant notification delivery.
-- **Ratings & Reviews:** Buyers can rate their completed orders, ensuring trust within the marketplace.
-- **Admin Dashboard:** Comprehensive administration tools to oversee users, farms, products, disputes, and platform analytics.
+Admin dashboards, production payment callbacks, real-time SSE, and backend-enforced authentication are not implemented in this frontend repository.
 
-## 🛠 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-Make sure you have [Node.js](https://nodejs.org/) (v20+ recommended) and `npm` installed.
+Use Node.js 20+ and npm.
 
 ### Installation
 
-1. Clone the repository and navigate to the project directory:
-   ```bash
-   cd hasady
-   ```
-
-2. Install the dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
 ### Environment Setup
 
-Create a `.env.local` file in the root directory by copying the example file:
+Create local environment variables from the example file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Update `.env.local` with your local backend configuration:
+When `NEXT_PUBLIC_API_URL` is unset, mock API mode is used. To call a backend, set:
+
 ```env
-# Base URL for the Mahaseel backend (no trailing slash).
-# When unset, the app uses built-in mock API responses for local development.
 NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
-### Running the Application
+Do not include a trailing slash.
 
-Start the development server:
+### Run Locally
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+Open `http://localhost:3000`.
 
-## 📜 Available Scripts
+## Available Scripts
 
-- `npm run dev`: Starts the Next.js development server.
-- `npm run build`: Creates an optimized production build.
-- `npm run start`: Starts the production server (requires a build first).
-- `npm run lint`: Runs ESLint to check for code quality issues.
-- `npm run format`: Formats the codebase using Prettier.
+- `npm run dev`: Start the Next.js development server.
+- `npm run build`: Create a production build.
+- `npm run start`: Start the production server after building.
+- `npm run lint`: Run ESLint and Prettier checks.
+- `npm run format`: Format the repository with Prettier.
 
-## 🏗 Project Structure
+Before opening a PR, run:
 
-- `src/app`: Contains the Next.js App Router pages and layouts for different user flows (e.g., `/customer`, `/merchant`, `/signup`).
-- `src/components`: Reusable UI components used throughout the application.
-- `public`: Static assets like images and icons.
+```bash
+npm run lint
+npm run build
+```
 
-## 🔌 API Integration
+## Project Structure
 
-The frontend connects to the Mahaseel backend API. For detailed information about available endpoints, authentication rules, and payload structures, please refer to the [`MAHASEEL_API_QUICK_REFERENCE.md`](./MAHASEEL_API_QUICK_REFERENCE.md) file included in the repository.
+- `src/app`: App Router routes and layouts.
+- `src/app/(auth)`: Authentication route group for public auth pages.
+- `src/app/customer`: Buyer routes protected by buyer role guards.
+- `src/app/merchant`: Merchant routes protected by merchant role guards.
+- `src/components/ui`: Shared UI primitives.
+- `src/components/merchant`: Merchant-specific cards, forms, icons, and extracted form field groups.
+- `src/components/providers`: Global client providers.
+- `src/lib`: API client, auth store, guards, and utility helpers.
+- `src/services/api`: Remote/mock API service functions.
+- `public/images`: Static UI and product assets.
+
+## Authentication Notes
+
+This frontend intentionally treats the current token flow as mock-only. The Zustand store keeps the mock token in memory for the current session and persists only non-sensitive mock state such as the user profile and pending OTP metadata.
+
+For production authentication, the backend or BFF should issue HttpOnly, Secure, SameSite cookies. Production tokens must not be stored in `localStorage` or `sessionStorage`.
+
+## API Integration
+
+`src/lib/api-client.ts` centralizes remote API calls. If `NEXT_PUBLIC_API_URL` is missing, each service uses its mock fallback. Remote responses can be validated with an optional Zod schema through the API client options.
+
+Mock data is stored in `sessionStorage` under feature-specific keys such as crops, farms, orders, wallet, and reviews. This is for local development only.
+
+## Frontend Conventions
+
+- Use `next/image` for rendered images where possible.
+- Keep form labels associated with controls through `htmlFor`/`id`.
+- Use `aria-invalid` and `aria-describedby` for field errors.
+- Avoid clickable `div` controls; use buttons, labels, or native inputs.
+- Keep tokens and secrets out of browser storage.
+- Keep large pages/components split into focused subcomponents.
+
+## Static Assets
+
+Product image fallbacks live in:
+
+- `public/images/placeholder-crop.png`
+- `public/images/crops/cucumber.png`
+- `public/images/crops/tomato.png`
+
+Update these assets when replacing mock crop imagery with final product photography.
+
+## Backend Reference
+
+For backend endpoint expectations and payload notes, see [`MAHASEEL_API_QUICK_REFERENCE.md`](./MAHASEEL_API_QUICK_REFERENCE.md).
