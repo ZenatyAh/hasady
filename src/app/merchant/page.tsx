@@ -49,11 +49,10 @@ export default function MerchantDashboard() {
     return null;
   }
 
-  // Fallback defaults for visual accuracy matching the mockup
-  const displayName = user?.name || 'محمد علي إسماعيل';
-  const displayBalance = wallet?.balance ?? 4374;
-  const displayCurrency = wallet?.currency ?? '₪';
-  const displayLastLogin = '14-08-2025';
+  const displayName = user?.name ?? 'مستخدم';
+  const displayBalance = wallet?.balance ?? 0;
+  const displayCurrency = wallet?.currency ?? 'ريال سعودي';
+  const displayLastLogin = new Date().toLocaleDateString('ar-SA');
 
   const menuItems = [
     {

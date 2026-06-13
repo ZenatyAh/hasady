@@ -60,12 +60,7 @@ function PadlockIcon({ className }: { className?: string }) {
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 const recoverSchema = z.object({
-  phone: z
-    .string()
-    .min(1, 'رقم الهاتف مطلوب')
-    .length(10, 'يجب أن يتكون رقم الهاتف من 10 أرقام')
-    .regex(/^\d+$/, 'رقم الهاتف يجب أن يحتوي على أرقام فقط')
-    .startsWith('05', 'يجب أن يبدأ رقم الهاتف ب 05'),
+  email: z.string().min(1, 'البريد الإلكتروني مطلوب').email('البريد الإلكتروني غير صالح'),
 });
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -75,16 +70,16 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
   const setPendingOtp = useAuthStore((state) => state.setPendingOtp);
 
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ phone?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; general?: string }>({});
 
   if (!isReady) {
     return null;
   }
 
   const validate = () => {
-    const result = recoverSchema.safeParse({ phone });
+    const result = recoverSchema.safeParse({ email });
     if (result.success) {
       setErrors({});
       return true;
@@ -92,7 +87,7 @@ export default function ForgotPasswordPage() {
 
     const fieldErrors = result.error.flatten().fieldErrors;
     setErrors({
-      phone: fieldErrors.phone?.[0],
+      email: fieldErrors.email?.[0],
     });
     return false;
   };
@@ -105,9 +100,9 @@ export default function ForgotPasswordPage() {
 
     try {
       setLoading(true);
-      await recoverPassword({ phone });
+      await recoverPassword({ email });
 
-      setPendingOtp(phone, 'reset');
+      setPendingOtp(email, 'reset');
       router.push('/confirm');
     } catch (err: unknown) {
       setErrors({
@@ -126,21 +121,19 @@ export default function ForgotPasswordPage() {
           <PadlockIcon className="h-24 w-24 mb-6" />
           <h1 className="text-2xl font-bold text-[#111111]">استعادة كلمة المرور!</h1>
           <p className="mt-2 text-sm text-[#888888]">
-            قم بإدخال رقم الهاتف لإستعادة كلمة المرور الخاصة بك!
+            قم بإدخال البريد الإلكتروني لإستعادة كلمة المرور الخاصة بك!
           </p>
         </div>
 
         {/* ── Form ─────────────────────────────────────────────────────────── */}
         <form onSubmit={handleSubmit} className="w-full space-y-6">
           <Input
-            label="رقم الهاتف"
-            type="tel"
-            placeholder="0597450057"
-            inputMode="numeric"
-            maxLength={10}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-            error={errors.phone}
+            label="البريد الإلكتروني"
+            type="email"
+            placeholder="user@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={errors.email}
             dir="ltr"
             className="text-right"
           />

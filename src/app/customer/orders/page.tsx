@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getIncomingOrders, PurchaseOrder } from '@/services/api/orders';
+import { getMyOrders, PurchaseOrder } from '@/services/api/orders';
 import { useAuthStore } from '@/lib/store';
 
 export default function CustomerOrdersPage() {
@@ -18,7 +18,7 @@ export default function CustomerOrdersPage() {
     async function loadOrders() {
       try {
         setLoading(true);
-        const data = await getIncomingOrders(token);
+        const data = await getMyOrders(token);
         setOrders(data);
       } catch (err) {
         console.error('Failed to load purchase orders:', err);

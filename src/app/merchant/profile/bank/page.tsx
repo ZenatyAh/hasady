@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
-import { getDefaultBankAccount, BankAccount } from '@/services/api/wallet';
+import { getDefaultBankAccount, type BankAccount } from '@/services/api/bank-accounts';
 import { PageHeader } from '@/components/merchant/PageHeader';
 
 export default function BankAccountInfoPage() {

@@ -2,8 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store';
 import { getFarms, type Farm } from '@/services/api/farms';
-import { type Crop } from '@/services/api/crops';
+import { type Crop, uploadProductMedia } from '@/services/api/crops';
 import { CropConfirmModal } from './CropConfirmModal';
 import { CropDeliveryFields } from './CropDeliveryFields';
 import { CropDetailsFields } from './CropDetailsFields';
@@ -12,12 +13,13 @@ import { CropSaleFields } from './CropSaleFields';
 
 interface CropFormProps {
   initialData?: Crop;
-  onSubmit: (data: Omit<Crop, 'id' | 'status'>) => Promise<void> | void;
+  onSubmit: (data: Omit<Crop, 'id' | 'status'>) => Promise<Crop | void> | Crop | void;
   mode: 'create' | 'edit';
 }
 
 export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loadingFarms, setLoadingFarms] = useState(true);
@@ -35,6 +37,7 @@ export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
   const [driverPhone, setDriverPhone] = useState(initialData?.driverPhone || '');
   const [driverName, setDriverName] = useState(initialData?.driverName || '');
   const [uploadedImages, setUploadedImages] = useState<string[]>(initialData?.images || []);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [imageNames, setImageNames] = useState<string[]>(
     initialData?.images?.map((img) => img.split('/').pop() || 'image.png') || []
   );
@@ -72,14 +75,16 @@ export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
 
     const newNames: string[] = [];
     const newUrls: string[] = [];
+    const newFiles: File[] = [];
     for (let i = 0; i < files.length; i++) {
       newNames.push(files[i].name);
-      const idx = (uploadedImages.length + i) % 2;
-      newUrls.push(idx === 0 ? '/images/crops/cucumber.png' : '/images/crops/tomato.png');
+      newUrls.push(URL.createObjectURL(files[i]));
+      newFiles.push(files[i]);
     }
 
     setImageNames((prev) => [...prev, ...newNames]);
     setUploadedImages((prev) => [...prev, ...newUrls]);
+    setPendingFiles((prev) => [...prev, ...newFiles]);
     setErrors((prev) => {
       const next = { ...prev };
       delete next.images;
@@ -91,6 +96,7 @@ export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
     e.stopPropagation();
     setImageNames((prev) => prev.filter((_, i) => i !== index));
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const validateForm = () => {
@@ -124,7 +130,7 @@ export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
     setIsSubmitting(true);
     try {
       const selectedFarm = farms.find((farm) => farm.id === farmId);
-      await onSubmit({
+      const result = await onSubmit({
         name,
         description,
         saleMethod,
@@ -140,6 +146,11 @@ export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
         contact: selectedFarm?.contactNumber || '0501234567',
         managerName: selectedFarm?.managerName || 'عبدالعزيز السبيعي',
       });
+
+      const cropId = initialData?.id ?? (result && 'id' in result ? result.id : undefined);
+      if (cropId && pendingFiles.length > 0) {
+        await uploadProductMedia(cropId, pendingFiles, token);
+      }
       setIsModalOpen(false);
       router.push('/merchant/crops');
     } catch {

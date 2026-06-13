@@ -1,6 +1,6 @@
 // src/services/api/farms.ts
 
-import { apiGet, apiPost, apiPut } from '@/lib/api-client';
+import { apiGet, apiPost, apiPut, apiUpload } from '@/lib/api-client';
 
 const MOCK_DELAY_MS = 1000;
 
@@ -134,9 +134,17 @@ export async function updateFarm(
   farmData: Partial<Farm>,
   token?: string | null
 ): Promise<Farm> {
+  const payload = {
+    name: farmData.name,
+    displayName: farmData.name,
+    managerName: farmData.managerName,
+    contactPhone: farmData.contactNumber,
+    locationText: farmData.location,
+  };
+
   return apiPut(
     `/farms/${id}`,
-    farmData,
+    payload,
     () =>
       mockDelay(() => {
         const farms = getStoredFarms();
@@ -147,12 +155,34 @@ export async function updateFarm(
         const updatedFarm = {
           ...farms[farmIdx],
           ...farmData,
-          status: 'PENDING' as const, // Re-submitting triggers review again
+          status: 'PENDING' as const,
         };
         const updated = [...farms];
         updated[farmIdx] = updatedFarm;
         saveStoredFarms(updated);
         return updatedFarm;
+      }),
+    { token }
+  );
+}
+
+export async function uploadFarmMedia(
+  id: string,
+  files: File[],
+  token?: string | null
+): Promise<Farm> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+
+  return apiUpload(
+    `/farms/${id}/media`,
+    formData,
+    () =>
+      mockDelay(() => {
+        const farms = getStoredFarms();
+        const farm = farms.find((item) => item.id === id);
+        if (!farm) throw new Error('المزرعة غير موجودة');
+        return farm;
       }),
     { token }
   );

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { addBankAccount } from '@/services/api/auth';
+import { createBankAccount } from '@/services/api/bank-accounts';
 import { useAuthStore } from '@/lib/store';
 
 // ─── Validation Schema ────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ export default function AddBankAccountPage() {
 
     try {
       setLoading(true);
-      await addBankAccount(
+      await createBankAccount(
         {
           bankName: bankName.trim(),
           accountHolderName: accountHolderName.trim(),

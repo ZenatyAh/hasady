@@ -1,8 +1,15 @@
 # Mahaseel
 
-Mahaseel is a frontend web application for an agricultural marketplace. It supports buyer and merchant flows for browsing crops, managing farms/crops, mock purchase orders, wallets, reviews, and notifications.
+Mahaseel is a frontend web application for an agricultural marketplace. It supports buyer and merchant flows for browsing crops, managing farms/crops, orders, wallets, reviews, and notifications.
 
-The backend is not connected by default. When `NEXT_PUBLIC_API_URL` is not set, the app runs in mock API mode and stores demo data in browser session storage.
+When `NEXT_PUBLIC_API_URL` is unset, the app runs in mock API mode. When set to the Railway API, buyer and merchant flows call the backend through typed services and React Query hooks.
+
+## Backend
+
+- **Repository:** https://github.com/AmjadOka/mahaseel.git
+- **Production API:** `https://mahaseel-production.up.railway.app/api/v1`
+- **Demo guide:** [`DEMO_GUIDE.md`](./DEMO_GUIDE.md)
+- **API quick reference:** [`MAHASEEL_API_QUICK_REFERENCE.md`](./MAHASEEL_API_QUICK_REFERENCE.md)
 
 ## Tech Stack
 
@@ -10,21 +17,20 @@ The backend is not connected by default. When `NEXT_PUBLIC_API_URL` is not set, 
 - **UI:** React 19
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS v4
-- **Client state:** Zustand
-- **Server/cache provider:** TanStack React Query provider is configured for future remote data usage
+- **Client state:** Zustand (session persistence for auth tokens + user)
+- **Data fetching:** TanStack React Query hooks over API services
 - **Validation:** Zod for form/API validation where runtime parsing is needed
 - **Quality:** ESLint, Prettier, Husky, lint-staged
 
 ## Implemented Frontend Flows
 
-- Buyer authentication mock flow: signup, login, OTP confirmation, reset password.
-- Merchant authentication mock flow: signup, login, OTP confirmation.
-- Role-aware client route guards for `/customer` and `/merchant` sections.
-- Buyer crop browsing, crop detail, fixed purchase, auction bid, orders, wallet, reviews, notifications, and profile pages.
-- Merchant dashboard, farms, crops, orders, wallet, reviews, notifications, and profile pages.
-- Mock API fallback for local development without backend services.
+- Buyer + merchant auth (email signin/signup, verify-email, password reset)
+- Role-aware client route guards for `/customer` and `/merchant` sections
+- Buyer: market browse, purchase/bid, orders, Stripe payment redirect, wallet, reviews, notifications
+- Merchant: farms/crops CRUD with media upload, orders, delivery tracking, wallet, reviews, notifications
+- Mock API fallback for local development without backend services
 
-Admin dashboards, production payment callbacks, real-time SSE, and backend-enforced authentication are not implemented in this frontend repository.
+Admin dashboards are out of scope for this frontend repository.
 
 ## Getting Started
 
@@ -46,13 +52,13 @@ Create local environment variables from the example file:
 cp .env.example .env.local
 ```
 
-When `NEXT_PUBLIC_API_URL` is unset, mock API mode is used. To call a backend, set:
+When `NEXT_PUBLIC_API_URL` is unset, mock API mode is used. To call the Railway backend:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_API_URL=https://mahaseel-production.up.railway.app/api/v1
 ```
 
-Do not include a trailing slash.
+Include `/api/v1` in the URL. Do not add a trailing slash.
 
 ### Run Locally
 
@@ -68,12 +74,15 @@ Open `http://localhost:3000`.
 - `npm run build`: Create a production build.
 - `npm run start`: Start the production server after building.
 - `npm run lint`: Run ESLint and Prettier checks.
+- `npm run test`: Run unit tests (mappers + API mock flows).
 - `npm run format`: Format the repository with Prettier.
 
 Before opening a PR, run:
 
 ```bash
 npm run lint
+npx tsc --noEmit
+npm run test
 npm run build
 ```
 
@@ -92,15 +101,15 @@ npm run build
 
 ## Authentication Notes
 
-This frontend intentionally treats the current token flow as mock-only. The Zustand store keeps the mock token in memory for the current session and persists only non-sensitive mock state such as the user profile and pending OTP metadata.
+Auth tokens (`accessToken`, `refreshToken`) and user profile are persisted in Zustand session storage for the current browser session. On load, `useRestoreSession` calls `GET /users/me` when a token exists.
 
-For production authentication, the backend or BFF should issue HttpOnly, Secure, SameSite cookies. Production tokens must not be stored in `localStorage` or `sessionStorage`.
+For hardened production deployments, prefer HttpOnly cookies issued by the backend/BFF instead of client-side token storage.
 
 ## API Integration
 
-`src/lib/api-client.ts` centralizes remote API calls. If `NEXT_PUBLIC_API_URL` is missing, each service uses its mock fallback. Remote responses can be validated with an optional Zod schema through the API client options.
+`src/lib/api-client.ts` centralizes remote API calls with envelope unwrapping, unified `ApiError`, multipart upload, and 401 session clearing. If `NEXT_PUBLIC_API_URL` is missing, each service uses its mock fallback.
 
-Mock data is stored in `sessionStorage` under feature-specific keys such as crops, farms, orders, wallet, and reviews. This is for local development only.
+Buyer catalog uses `GET /market`. Merchant products use `GET /products`. Payments redirect to Stripe via `POST /payments/orders/:id/initiate`.
 
 ## Frontend Conventions
 

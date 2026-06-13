@@ -44,7 +44,7 @@ export default function EditCropPage({ params }: EditCropPageProps) {
 
   const handleSubmit = async (cropData: Omit<Crop, 'id' | 'status'>) => {
     if (!id) return;
-    await updateCrop(id, cropData, token);
+    return updateCrop(id, cropData, token);
   };
 
   if (!isReady) {

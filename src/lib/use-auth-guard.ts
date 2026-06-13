@@ -18,9 +18,9 @@ export function useAuthGuard(options: UseAuthGuardOptions | string = {}) {
     typeof options === 'string' ? { redirectTo: options, requiredRole: undefined } : options;
   const router = useRouter();
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const token = useAuthStore((state) => state.token);
+  const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
-  const isAuthenticated = Boolean(user);
+  const isAuthenticated = Boolean(accessToken && user);
   const hasRequiredRole = !requiredRole || user?.role === requiredRole;
 
   useEffect(() => {
@@ -38,7 +38,8 @@ export function useAuthGuard(options: UseAuthGuardOptions | string = {}) {
 
   return {
     hasHydrated,
-    token,
+    token: accessToken,
+    accessToken,
     user,
     isAuthenticated,
     isReady: hasHydrated && isAuthenticated && hasRequiredRole,

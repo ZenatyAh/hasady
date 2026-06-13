@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod';
+import { ApiError } from '@/lib/api-errors';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 
@@ -6,24 +7,72 @@ export function getApiMode(): 'remote' | 'mock' {
   return API_BASE ? 'remote' : 'mock';
 }
 
-type ApiErrorBody = { message?: string };
+type ApiErrorBody = {
+  message?: string | string[];
+  statusCode?: number;
+};
+
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 type ApiRequestOptions<T> = {
   token?: string | null;
   schema?: ZodType<T>;
+  skipAuthRedirect?: boolean;
 };
+
+type ApiEnvelope<T> = {
+  success?: boolean;
+  data?: T;
+  message?: string | string[];
+  statusCode?: number;
+};
+
+export function buildQuery(
+  params: Record<string, string | number | boolean | undefined | null>
+): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    search.set(key, String(value));
+  });
+  const query = search.toString();
+  return query ? `?${query}` : '';
+}
 
 async function readJson(res: Response): Promise<unknown> {
   return res.json().catch(() => ({}));
+}
+
+function normalizeMessage(message: string | string[] | undefined, fallback: string): string {
+  if (!message) return fallback;
+  return Array.isArray(message) ? message.join('، ') : message;
 }
 
 function parseResponse<T>(data: unknown, schema?: ZodType<T>): T {
   if (schema) {
     return schema.parse(data);
   }
-
   return data as T;
+}
+
+function unwrapEnvelope<T>(payload: unknown): T {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'success' in payload &&
+    (payload as ApiEnvelope<T>).success === true &&
+    'data' in payload
+  ) {
+    return (payload as ApiEnvelope<T>).data as T;
+  }
+  return payload as T;
+}
+
+function handleUnauthorized(skipAuthRedirect?: boolean) {
+  if (typeof window === 'undefined' || skipAuthRedirect) return;
+  const { pathname } = window.location;
+  if (pathname.startsWith('/login') || pathname.startsWith('/signup')) return;
+  window.dispatchEvent(new CustomEvent('mahaseel:unauthorized'));
 }
 
 async function apiRequest<T>({
@@ -44,7 +93,7 @@ async function apiRequest<T>({
   }
 
   const headers: Record<string, string> = {};
-  if (body !== undefined) {
+  if (body !== undefined && !(body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
   if (options?.token) {
@@ -54,17 +103,24 @@ async function apiRequest<T>({
   const res = await fetch(`${API_BASE}${endpoint}`, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   });
 
-  const data = await readJson(res);
+  const payload = await readJson(res);
 
   if (!res.ok) {
-    const errorBody = data as ApiErrorBody;
-    throw new Error(errorBody.message ?? 'حدث خطأ في الاتصال بالخادم');
+    const errorBody = payload as ApiErrorBody;
+    if (res.status === 401) {
+      handleUnauthorized(options?.skipAuthRedirect);
+    }
+    throw new ApiError(
+      normalizeMessage(errorBody.message, 'حدث خطأ في الاتصال بالخادم'),
+      errorBody.statusCode ?? res.status
+    );
   }
 
-  return parseResponse(data, options?.schema);
+  const unwrapped = unwrapEnvelope<T>(payload);
+  return parseResponse(unwrapped, options?.schema);
 }
 
 export function apiPost<T>(
@@ -108,4 +164,22 @@ export function apiDelete<T>(
   options?: ApiRequestOptions<T>
 ): Promise<T> {
   return apiRequest({ method: 'DELETE', endpoint, mock, options });
+}
+
+export function apiUpload<T>(
+  endpoint: string,
+  formData: FormData,
+  mock: () => Promise<T>,
+  options?: ApiRequestOptions<T>
+): Promise<T> {
+  return apiRequest({ method: 'PATCH', endpoint, body: formData, mock, options });
+}
+
+export function apiPutUpload<T>(
+  endpoint: string,
+  formData: FormData,
+  mock: () => Promise<T>,
+  options?: ApiRequestOptions<T>
+): Promise<T> {
+  return apiRequest({ method: 'PUT', endpoint, body: formData, mock, options });
 }

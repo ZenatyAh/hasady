@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Almarai } from 'next/font/google';
 import './globals.css';
 import QueryProvider from '@/components/providers/QueryProvider';
+import { AuthSessionProvider } from '@/components/providers/AuthSessionProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const almarai = Almarai({
   variable: '--font-almarai',
@@ -39,7 +41,11 @@ export default function RootLayout({
   return (
     <html lang="ar" className={`${almarai.variable} h-full antialiased`} dir="rtl">
       <body className="min-h-full flex flex-col">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <AuthSessionProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthSessionProvider>
+        </QueryProvider>
       </body>
     </html>
   );

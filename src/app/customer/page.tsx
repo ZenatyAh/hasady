@@ -5,7 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getCrops, Crop } from '@/services/api/crops';
+import { browseMarket } from '@/services/api/market';
+import type { Crop } from '@/services/api/crops';
 import { useAuthStore } from '@/lib/store';
 
 // ─── Categories List ─────────────────────────────────────────────────────────
@@ -30,8 +31,15 @@ export default function CustomerBrowsePage() {
     async function loadCrops() {
       try {
         setLoading(true);
-        const data = await getCrops(token);
-        setCrops(data);
+        const result = await browseMarket(
+          {
+            q: search || undefined,
+            categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
+            saleMethod: saleMethodFilter === 'ALL' ? undefined : saleMethodFilter,
+          },
+          token
+        );
+        setCrops(result.items);
       } catch (err) {
         console.error('Failed to load crops:', err);
       } finally {
@@ -39,7 +47,7 @@ export default function CustomerBrowsePage() {
       }
     }
     loadCrops();
-  }, [token]);
+  }, [token, search, selectedCategory, saleMethodFilter]);
 
   // Filter logic
   const filteredCrops = crops.filter((crop) => {

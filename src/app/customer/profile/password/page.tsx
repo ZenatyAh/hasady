@@ -1,28 +1,46 @@
-// src/app/customer/profile/password/page.tsx
-
 'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store';
+import { setUserPassword } from '@/services/api/users';
+import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerProfilePasswordPage() {
   const router = useRouter();
-  const [oldPassword, setOldPassword] = useState('');
+  const token = useAuthStore((state) => state.token);
+
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    if (newPassword.length < 6) {
+      setError('يجب أن تتكون كلمة المرور من 6 خانات على الأقل');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('تأكيد كلمة المرور غير متطابق');
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await setUserPassword(newPassword, token);
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/customer/profile');
-      }, 1000);
-    }, 1000);
+      setTimeout(() => router.push('/customer/profile'), 1000);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -40,23 +58,27 @@ export default function CustomerProfilePasswordPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1">
-          <label className="text-xs font-bold text-[#333333]">كلمة المرور الحالية</label>
-          <input
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            className="w-full bg-[#faf8f5] text-[#111111] py-3 px-4 rounded-xl border border-[#f0ebde] outline-none text-xs focus:border-[#265C38] transition"
-          />
-        </div>
+      {error && (
+        <div className="bg-red-50 text-red-600 rounded-xl p-3 text-xs font-bold">{error}</div>
+      )}
 
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1">
           <label className="text-xs font-bold text-[#333333]">كلمة المرور الجديدة</label>
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full bg-[#faf8f5] text-[#111111] py-3 px-4 rounded-xl border border-[#f0ebde] outline-none text-xs focus:border-[#265C38] transition"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-[#333333]">تأكيد كلمة المرور</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full bg-[#faf8f5] text-[#111111] py-3 px-4 rounded-xl border border-[#f0ebde] outline-none text-xs focus:border-[#265C38] transition"
           />
         </div>

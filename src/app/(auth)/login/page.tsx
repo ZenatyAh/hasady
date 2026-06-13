@@ -11,12 +11,7 @@ import { useAuthStore } from '@/lib/store';
 import { useGuestGuard } from '@/lib/use-guest-guard';
 
 const loginSchema = z.object({
-  phone: z
-    .string()
-    .min(1, 'رقم الهاتف مطلوب')
-    .length(10, 'يجب أن يتكون رقم الهاتف من 10 أرقام')
-    .regex(/^\d+$/, 'رقم الهاتف يجب أن يحتوي على أرقام فقط')
-    .startsWith('05', 'يجب أن يبدأ رقم الهاتف ب 05'),
+  email: z.string().min(1, 'البريد الإلكتروني مطلوب').email('البريد الإلكتروني غير صالح'),
   password: z.string().min(1, 'كلمة المرور مطلوبة'),
 });
 
@@ -25,20 +20,20 @@ export default function LoginPage() {
   const router = useRouter();
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
 
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState<'BUYER' | 'MERCHANT'>('BUYER');
 
-  const [errors, setErrors] = useState<{ phone?: string; password?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
   if (!isReady) {
     return null;
   }
 
   const validate = () => {
-    const result = loginSchema.safeParse({ phone, password });
+    const result = loginSchema.safeParse({ email, password });
     if (result.success) {
       setErrors({});
       return true;
@@ -46,7 +41,7 @@ export default function LoginPage() {
 
     const fieldErrors = result.error.flatten().fieldErrors;
     setErrors({
-      phone: fieldErrors.phone?.[0],
+      email: fieldErrors.email?.[0],
       password: fieldErrors.password?.[0],
     });
     return false;
@@ -60,9 +55,10 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const res = await login({ phone, password, role });
-      setAuthSession(res.token, res.user);
-      router.push('/bank-account');
+      const res = await login({ email, password, role });
+      setAuthSession({ accessToken: res.accessToken, refreshToken: res.refreshToken }, res.user);
+      const target = res.user.role === 'MERCHANT' ? '/merchant' : '/customer';
+      router.push(target);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
       setErrors({ general: message });
@@ -110,15 +106,14 @@ export default function LoginPage() {
             </div>
 
             <Input
-              label="رقم الهاتف"
-              type="tel"
-              placeholder="0597450057"
-              inputMode="numeric"
-              maxLength={10}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              error={errors.phone}
-              dir="ltr" // Typically phone numbers are typed LTR
+              label="البريد الإلكتروني"
+              type="email"
+              placeholder="user@example.com"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
+              dir="ltr"
               className="text-right"
             />
 

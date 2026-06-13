@@ -5,9 +5,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { getCropById, type Crop } from '@/services/api/crops';
+import { getMarketProduct } from '@/services/api/market';
+import { placeOrder } from '@/services/api/orders';
+import { placeBid } from '@/services/api/auctions';
 import { useAuthStore } from '@/lib/store';
-import { type PurchaseOrder } from '@/services/api/orders';
+import type { Crop } from '@/services/api/crops';
 import { CustomerCropActionCard } from './CustomerCropActionCard';
 import { CustomerCropConfirmModal } from './CustomerCropConfirmModal';
 import { CustomerCropGallery } from './CustomerCropGallery';
@@ -30,7 +32,7 @@ export default function CustomerCropDetailPage() {
     async function loadCrop() {
       try {
         setLoading(true);
-        const data = await getCropById(id, token);
+        const data = await getMarketProduct(id, token);
         setCrop(data);
         if (data) setBidAmount(String(data.price + 100));
       } catch {
@@ -90,42 +92,30 @@ export default function CustomerCropDetailPage() {
   };
 
   const handleConfirmSubmit = async () => {
+    if (!token || !crop) return;
+
     try {
       setIsSubmitting(true);
-      const storedOrdersRaw = sessionStorage.getItem('hasady-purchase-orders');
-      let ordersList: PurchaseOrder[] = [];
-      if (storedOrdersRaw) {
-        try {
-          ordersList = JSON.parse(storedOrdersRaw) as PurchaseOrder[];
-        } catch {
-          ordersList = [];
-        }
+
+      if (isAuction) {
+        await placeBid({ productId: crop.id, amount: parseFloat(bidAmount) }, token);
+      } else {
+        await placeOrder(
+          {
+            productId: crop.id,
+            offeredPrice: crop.price,
+            quantity: crop.quantity,
+          },
+          token
+        );
       }
 
-      const today = new Date();
-      const formattedDate = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-      const newOrder: PurchaseOrder = {
-        id: `ord-${Date.now()}`,
-        type: isAuction ? 'auction' : 'fixed',
-        cropName: crop.name,
-        description: crop.description,
-        buyerName: user?.name || 'مشتري محاصيل',
-        buyerPhone: user?.phone || '+966500000000',
-        buyerRating: 4.8,
-        buyerId: user?.id || '2308920932093',
-        offeredPrice: isAuction ? parseFloat(bidAmount) : crop.price,
-        currency: 'ريال سعودي',
-        status: 'PENDING',
-        createdAt: formattedDate,
-        image: images[0],
-      };
-
-      sessionStorage.setItem('hasady-purchase-orders', JSON.stringify([newOrder, ...ordersList]));
-      if (isAuction) updateMockCropBid(crop.id, parseFloat(bidAmount), setCrop);
       setShowConfirmModal(false);
       router.push('/customer/orders');
-    } catch {
-      setErrorMessage('حدث خطأ أثناء إتمام العملية، يرجى المحاولة مجدداً');
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'حدث خطأ أثناء إتمام العملية، يرجى المحاولة مجدداً'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -178,23 +168,6 @@ export default function CustomerCropDetailPage() {
       )}
     </div>
   );
-}
-
-function updateMockCropBid(id: string, price: number, setCrop: (crop: Crop) => void) {
-  const storedCropsRaw = sessionStorage.getItem('hasady-crops');
-  if (!storedCropsRaw) return;
-
-  try {
-    const cropsList = JSON.parse(storedCropsRaw) as Crop[];
-    const cropIdx = cropsList.findIndex((item) => item.id === id);
-    if (cropIdx === -1) return;
-
-    cropsList[cropIdx].price = price;
-    sessionStorage.setItem('hasady-crops', JSON.stringify(cropsList));
-    setCrop(cropsList[cropIdx]);
-  } catch {
-    sessionStorage.removeItem('hasady-crops');
-  }
 }
 
 function CropInformation({ crop, isAuction }: { crop: Crop; isAuction: boolean }) {

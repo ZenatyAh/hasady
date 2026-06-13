@@ -2,19 +2,21 @@
 
 import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { type Farm } from '@/services/api/farms';
+import { useAuthStore } from '@/lib/store';
+import { type Farm, uploadFarmMedia } from '@/services/api/farms';
 import { FarmConfirmModal } from './FarmConfirmModal';
 import { FarmDetailsFields } from './FarmDetailsFields';
 import { FarmRegisterUpload } from './FarmRegisterUpload';
 
 interface FarmFormProps {
   initialData?: Farm;
-  onSubmit: (data: Omit<Farm, 'id' | 'status'>) => Promise<void> | void;
+  onSubmit: (data: Omit<Farm, 'id' | 'status'>) => Promise<Farm | void> | Farm | void;
   mode: 'create' | 'edit';
 }
 
 export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(initialData?.name || '');
   const [location, setLocation] = useState(initialData?.location || '');
@@ -28,6 +30,7 @@ export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
   const [fileSize, setFileSize] = useState(
     initialData?.agriculturalRegisterUrl ? 'مرفق مسبقاً' : ''
   );
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,6 +51,7 @@ export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
     setFileName(file.name);
     const sizeMb = file.size / (1024 * 1024);
     setFileSize(sizeMb > 0.1 ? `${sizeMb.toFixed(2)} MB` : `${(file.size / 1024).toFixed(1)} KB`);
+    setPendingFile(file);
     setErrors((prev) => {
       const next = { ...prev };
       delete next.file;
@@ -60,6 +64,7 @@ export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
     e.stopPropagation();
     setFileName('');
     setFileSize('');
+    setPendingFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -87,7 +92,7 @@ export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
   const handleConfirmSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await onSubmit({
+      const result = await onSubmit({
         name,
         location,
         contactNumber,
@@ -95,6 +100,11 @@ export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
         agriculturalRegisterUrl: fileName ? `/files/${fileName}` : '',
         area: initialData?.area || '50 دونم',
       });
+
+      const farmId = initialData?.id ?? (result && 'id' in result ? result.id : undefined);
+      if (farmId && pendingFile) {
+        await uploadFarmMedia(farmId, [pendingFile], token);
+      }
       setIsModalOpen(false);
       router.push('/merchant/farms');
     } catch {

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "test": "vitest run",
     "format": "prettier --write .",
     "prepare": "husky"
   },
@@ -31,6 +32,7 @@
     "lint-staged": "^17.0.7",
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }

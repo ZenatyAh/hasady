@@ -21,7 +21,7 @@ function AddCropPageContent() {
   }, [isReady, queryFarmId, token]);
 
   const handleSubmit = async (cropData: Omit<Crop, 'id' | 'status'>) => {
-    await createCrop(cropData, token);
+    return createCrop(cropData, token);
   };
 
   if (!isReady) {

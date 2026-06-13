@@ -6,7 +6,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getOrderDetail, PurchaseOrder } from '@/services/api/orders';
+import { initiatePayment } from '@/services/api/payments';
 import { useAuthStore } from '@/lib/store';
+import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerOrderDetailPage() {
   const params = useParams();
@@ -16,12 +18,9 @@ export default function CustomerOrderDetailPage() {
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Simulation states
-  const [isPaid, setIsPaid] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [cardNumber, setCardNumber] = useState('4000 1234 5678 9010');
-  const [deliveryStep, setDeliveryStep] = useState(2); // 1 = Placed, 2 = Accepted & Unpaid, 3 = Paid & Shipping, 4 = Delivered
+  const [paymentError, setPaymentError] = useState('');
+  const [deliveryStep, setDeliveryStep] = useState(2);
 
   useEffect(() => {
     async function loadOrder() {
@@ -30,18 +29,14 @@ export default function CustomerOrderDetailPage() {
         const found = await getOrderDetail(id, token);
         setOrder(found);
         if (found) {
-          // Adjust simulated step based on status
-          if (found.status === 'PENDING') {
+          if (found.status === 'PENDING' || found.status === 'REJECTED') {
             setDeliveryStep(1);
-          } else if (found.status === 'REJECTED') {
-            setDeliveryStep(1);
+          } else if (found.backendStatus === 'COMPLETED') {
+            setDeliveryStep(4);
+          } else if (found.backendStatus === 'ACCEPTED') {
+            setDeliveryStep(4);
           } else if (found.status === 'ACCEPTED') {
-            // Check if already marked paid in session storage
-            const paidKey = `order-paid-${found.id}`;
-            const hasPaid =
-              typeof window !== 'undefined' && sessionStorage.getItem(paidKey) === 'true';
-            setIsPaid(hasPaid);
-            setDeliveryStep(hasPaid ? 4 : 2);
+            setDeliveryStep(found.backendStatus === 'AWAITING_PAYMENT' ? 2 : 3);
           }
         }
       } catch (err) {
@@ -79,21 +74,25 @@ export default function CustomerOrderDetailPage() {
     );
   }
 
-  const handlePayNow = () => {
-    setShowPaymentModal(true);
-  };
+  const isAwaitingPayment =
+    order.backendStatus === 'AWAITING_PAYMENT' ||
+    (order.status === 'ACCEPTED' &&
+      order.backendStatus !== 'ACCEPTED' &&
+      order.backendStatus !== 'COMPLETED');
+  const isPaid = order.backendStatus === 'ACCEPTED' || order.backendStatus === 'COMPLETED';
 
-  const handleConfirmPayment = () => {
+  const handlePayNow = async () => {
+    if (!token) return;
+    setPaymentError('');
     setPaymentLoading(true);
-    setTimeout(() => {
+    try {
+      const result = await initiatePayment(order.id, token);
+      window.location.href = result.paymentUrl;
+    } catch (err) {
+      setPaymentError(getErrorMessage(err, 'تعذر بدء عملية الدفع'));
+    } finally {
       setPaymentLoading(false);
-      setIsPaid(true);
-      setDeliveryStep(4); // Advance timeline to completed/delivered
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem(`order-paid-${order.id}`, 'true');
-      }
-      setShowPaymentModal(false);
-    }, 1500);
+    }
   };
 
   // Timeline tracking list helper
@@ -201,16 +200,22 @@ export default function CustomerOrderDetailPage() {
               </div>
             )}
 
-            {order.status === 'ACCEPTED' && !isPaid && (
+            {isAwaitingPayment && !isPaid && (
               <div className="space-y-4">
                 <p className="text-xs text-[#888888] leading-relaxed">
                   تم قبول طلبك بنجاح! يرجى إتمام الدفع الفوري لتأكيد شحن المحصول إليك.
                 </p>
+                {paymentError && (
+                  <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                    {paymentError}
+                  </div>
+                )}
                 <button
                   onClick={handlePayNow}
-                  className="w-full bg-[#265C38] hover:bg-[#1f4f2c] text-white text-xs font-bold py-3.5 rounded-xl transition shadow-sm cursor-pointer"
+                  disabled={paymentLoading}
+                  className="w-full bg-[#265C38] hover:bg-[#1f4f2c] text-white text-xs font-bold py-3.5 rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  💳 دفع القيمة الآن (مويسر)
+                  {paymentLoading ? 'جاري التحويل لبوابة الدفع...' : '💳 دفع القيمة الآن (Stripe)'}
                 </button>
               </div>
             )}
@@ -234,76 +239,6 @@ export default function CustomerOrderDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Moyasar Payment Gateway Modal Simulation */}
-      {showPaymentModal && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-fadeIn"
-          dir="rtl"
-        >
-          <div className="bg-white rounded-[2.5rem] border border-[#f0ebde] max-w-sm w-full p-6 text-right space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#f0ebde]/45 pb-3">
-              <h3 className="text-base font-bold text-[#111111]">بوابة دفع مويسر (Moyasar)</h3>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="text-gray-400 hover:text-black"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-400">رقم البطاقة</label>
-                <input
-                  type="text"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  className="w-full bg-[#faf8f5] text-[#111111] font-mono text-left py-2.5 px-4 rounded-xl border border-[#f0ebde] outline-none"
-                  dir="ltr"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1 text-right">
-                  <label className="text-xs font-bold text-gray-400 block">تاريخ الانتهاء</label>
-                  <input
-                    type="text"
-                    defaultValue="12/29"
-                    className="w-full bg-[#faf8f5] text-[#111111] text-center py-2.5 rounded-xl border border-[#f0ebde] outline-none"
-                    dir="ltr"
-                  />
-                </div>
-                <div className="space-y-1 text-right">
-                  <label className="text-xs font-bold text-gray-400 block">رمز التحقق (CVV)</label>
-                  <input
-                    type="text"
-                    defaultValue="123"
-                    className="w-full bg-[#faf8f5] text-[#111111] text-center py-2.5 rounded-xl border border-[#f0ebde] outline-none"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleConfirmPayment}
-              disabled={paymentLoading}
-              className="w-full bg-[#265C38] hover:bg-[#1f4f2c] text-white text-xs font-bold py-3.5 rounded-xl transition cursor-pointer disabled:opacity-50"
-            >
-              {paymentLoading ? 'جاري التحقق والدفع...' : `تأكيد ودفع ${order.offeredPrice} ريال`}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
