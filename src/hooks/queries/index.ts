@@ -1,20 +1,27 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { browseMarket } from '@/services/api/market';
+import type { MarketFilters } from '@/services/api/market';
+import { browseMarket, getMarketProduct } from '@/services/api/market';
 import { getMyOrders, getIncomingOrders, getOrderDetail } from '@/services/api/orders';
 import { getWalletSummary, getWalletTransactions } from '@/services/api/wallet';
 import { getNotifications, getUnreadCount } from '@/services/api/notifications';
 import { getGivenRatings, getReceivedRatings } from '@/services/api/ratings';
 import { getBuyerPayments } from '@/services/api/payments';
 import { queryKeys } from '@/lib/query-keys';
-import type { MarketFilters } from '@/services/api/market';
 
 export function useMarketProducts(filters: MarketFilters, token?: string | null) {
   return useQuery({
     queryKey: queryKeys.market(filters),
     queryFn: () => browseMarket(filters, token),
-    enabled: Boolean(token) || true,
+  });
+}
+
+export function useMarketProduct(id: string, token?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.marketProduct(id),
+    queryFn: () => getMarketProduct(id, token),
+    enabled: Boolean(id),
   });
 }
 

@@ -5,23 +5,16 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { browseMarket } from '@/services/api/market';
+import { browseMarket, type MarketFilters } from '@/services/api/market';
 import type { Crop } from '@/services/api/crops';
 import { useAuthStore } from '@/lib/store';
 
-// ─── Categories List ─────────────────────────────────────────────────────────
-
-const CATEGORIES = [
-  { id: 'all', name: 'الكل', icon: '🌾' },
-  { id: 'vegetables', name: 'خضار', icon: '🥦' },
-  { id: 'fruits', name: 'فواكه', icon: '🍎' },
-  { id: 'leafy', name: 'ورقيات', icon: '🥬' },
-  { id: 'dates', name: 'تمور', icon: '🌴' },
-];
+const CATEGORIES = [{ id: 'all', name: 'الكل', icon: '🌾' }];
 
 export default function CustomerBrowsePage() {
   const token = useAuthStore((state) => state.token);
   const [crops, setCrops] = useState<Crop[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -31,15 +24,19 @@ export default function CustomerBrowsePage() {
     async function loadCrops() {
       try {
         setLoading(true);
-        const result = await browseMarket(
-          {
-            q: search || undefined,
-            categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
-            saleMethod: saleMethodFilter === 'ALL' ? undefined : saleMethodFilter,
-          },
-          token
-        );
+
+        const filters: MarketFilters = {
+          page: 1,
+          limit: 20,
+        };
+
+        if (search.trim()) filters.q = search.trim();
+        if (selectedCategory !== 'all') filters.categoryId = selectedCategory;
+        if (saleMethodFilter !== 'ALL') filters.saleMethod = saleMethodFilter;
+
+        const result = await browseMarket(filters, token);
         setCrops(result.items);
+        setTotalCount(result.meta.total);
       } catch (err) {
         console.error('Failed to load crops:', err);
       } finally {
@@ -49,40 +46,8 @@ export default function CustomerBrowsePage() {
     loadCrops();
   }, [token, search, selectedCategory, saleMethodFilter]);
 
-  // Filter logic
-  const filteredCrops = crops.filter((crop) => {
-    // 1. Availability (only show AVAILABLE for shopping, or let them view SOLD as well? Let's display both, but AVAILABLE first)
-    // 2. Search query (crop name or farm name)
-    const matchesSearch =
-      crop.name.toLowerCase().includes(search.toLowerCase()) ||
-      crop.farmName.toLowerCase().includes(search.toLowerCase());
-
-    // 3. Category matching (simulate with name mapping for category filter)
-    let matchesCategory = true;
-    if (selectedCategory !== 'all') {
-      if (selectedCategory === 'vegetables') {
-        matchesCategory =
-          crop.name.includes('خيار') || crop.name.includes('طماطم') || crop.name.includes('بصل');
-      } else if (selectedCategory === 'fruits') {
-        matchesCategory =
-          crop.name.includes('تفاح') || crop.name.includes('برتقال') || crop.name.includes('موز');
-      } else if (selectedCategory === 'leafy') {
-        matchesCategory =
-          crop.name.includes('نعناع') || crop.name.includes('خس') || crop.name.includes('جرجير');
-      } else if (selectedCategory === 'dates') {
-        matchesCategory = crop.name.includes('تمر') || crop.name.includes('تمور');
-      }
-    }
-
-    // 4. Sale method filter
-    const matchesSaleMethod = saleMethodFilter === 'ALL' || crop.saleMethod === saleMethodFilter;
-
-    return matchesSearch && matchesCategory && matchesSaleMethod;
-  });
-
   return (
     <div className="space-y-8">
-      {/* ── Welcome and Search Header ── */}
       <div className="bg-[#e8f1eb] rounded-[2.5rem] p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm border border-[#265C38]/10">
         <div className="space-y-2 text-right md:max-w-md">
           <h1 className="text-2xl md:text-3xl font-extrabold text-[#265C38]">
@@ -94,7 +59,6 @@ export default function CustomerBrowsePage() {
           </p>
         </div>
 
-        {/* Search Box */}
         <div className="w-full md:w-80 relative">
           <input
             type="text"
@@ -121,7 +85,6 @@ export default function CustomerBrowsePage() {
         </div>
       </div>
 
-      {/* ── Categories Carousel Grid ── */}
       <div className="space-y-3">
         <h2 className="text-lg font-bold text-[#111111]">التصنيفات الرئيسية</h2>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
@@ -145,17 +108,15 @@ export default function CustomerBrowsePage() {
         </div>
       </div>
 
-      {/* ── Filters and Crop List ── */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#f0ebde]/45 pb-4">
           <h2 className="text-xl font-bold text-[#111111] flex items-center gap-2">
             <span>المحاصيل المتوفرة</span>
             <span className="bg-[#265C38]/10 text-[#265C38] text-xs px-2.5 py-1 rounded-full font-bold">
-              {filteredCrops.length}
+              {totalCount}
             </span>
           </h2>
 
-          {/* Segmented Filter */}
           <div className="flex bg-[#f0ebde]/70 rounded-xl p-1 self-start sm:self-auto">
             {(['ALL', 'FIXED', 'AUCTION'] as const).map((method) => {
               const label =
@@ -178,13 +139,12 @@ export default function CustomerBrowsePage() {
           </div>
         </div>
 
-        {/* Loading Spinner */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 space-y-4">
             <div className="h-10 w-10 border-4 border-[#e8f1eb] border-t-[#265C38] rounded-full animate-spin" />
             <span className="text-sm text-gray-500 font-bold">جاري تحميل المحاصيل...</span>
           </div>
-        ) : filteredCrops.length === 0 ? (
+        ) : crops.length === 0 ? (
           <div className="bg-[#fdfcfa] rounded-3xl border border-dashed border-[#f0ebde] p-12 text-center max-w-md mx-auto space-y-3">
             <span className="text-4xl">🔎</span>
             <h3 className="text-lg font-bold text-[#111111]">لم نجد أي نتائج</h3>
@@ -193,9 +153,8 @@ export default function CustomerBrowsePage() {
             </p>
           </div>
         ) : (
-          /* Products Grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCrops.map((crop) => {
+            {crops.map((crop) => {
               const isAuction = crop.saleMethod === 'AUCTION';
               const isSold = crop.status === 'SOLD';
               const imageUrl =
@@ -208,7 +167,6 @@ export default function CustomerBrowsePage() {
                   key={crop.id}
                   className="bg-white border border-[#f0ebde]/75 rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between h-[25rem]"
                 >
-                  {/* Image and Tag */}
                   <div className="relative h-44 bg-[#f4f7f5] flex items-center justify-center overflow-hidden">
                     <Image
                       src={imageUrl}
@@ -218,7 +176,6 @@ export default function CustomerBrowsePage() {
                       className="object-cover"
                     />
 
-                    {/* Method Tag */}
                     <span
                       className={`absolute top-4 right-4 text-[10px] font-bold px-3 py-1 rounded-full text-white shadow-sm ${
                         isAuction ? 'bg-[#9c27b0]' : 'bg-[#265C38]'
@@ -227,7 +184,6 @@ export default function CustomerBrowsePage() {
                       {isAuction ? '⚖️ مزاد علني' : '🏷️ سعر ثابت'}
                     </span>
 
-                    {/* Sold Tag */}
                     {isSold && (
                       <div className="absolute inset-0 bg-black/45 flex items-center justify-center">
                         <span className="bg-[#d32f2f] text-white text-sm font-extrabold px-4 py-2 rounded-xl">
@@ -237,7 +193,6 @@ export default function CustomerBrowsePage() {
                     )}
                   </div>
 
-                  {/* Body Content */}
                   <div className="p-6 text-right flex-1 flex flex-col justify-between">
                     <div>
                       <h3 className="text-base font-bold text-[#111111] mb-1">{crop.name}</h3>
@@ -245,7 +200,6 @@ export default function CustomerBrowsePage() {
                         {crop.description}
                       </p>
 
-                      {/* Info grid */}
                       <div className="grid grid-cols-2 gap-3 text-xs border-t border-[#f0ebde]/45 pt-3">
                         <div>
                           <span className="block text-gray-400 font-semibold mb-0.5">المزرعة</span>
@@ -264,7 +218,6 @@ export default function CustomerBrowsePage() {
                       </div>
                     </div>
 
-                    {/* Footer price & action */}
                     <div className="flex items-center justify-between border-t border-[#f0ebde]/45 pt-4 mt-4">
                       <div className="flex flex-col text-right">
                         <span className="text-[10px] text-gray-400 font-semibold">
