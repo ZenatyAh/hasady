@@ -38,7 +38,9 @@ export default function CustomerProfilePage() {
         </div>
         <div className="space-y-1">
           <h2 className="text-lg font-extrabold text-[#111111]">{displayName}</h2>
-          <span className="text-xs text-gray-400 font-mono" dir="ltr">{displayPhone}</span>
+          <span className="text-xs text-gray-400 font-mono" dir="ltr">
+            {displayPhone}
+          </span>
           <div className="mt-2">
             <span className="bg-[#e8f1eb] text-[#265C38] text-[10px] font-bold px-3 py-1 rounded-full border border-[#265C38]/10">
               حساب مشتري (مستهلك)

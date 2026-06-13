@@ -76,29 +76,30 @@ export default function ConfirmPage() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const pendingPhone = useAuthStore((state) => state.pendingPhone);
+  const pendingEmail = useAuthStore((state) => state.pendingEmail);
   const otpIntent = useAuthStore((state) => state.otpIntent);
+  const pendingRole = useAuthStore((state) => state.pendingRole);
   const clearPendingOtp = useAuthStore((state) => state.clearPendingOtp);
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
-  const phone = pendingPhone ?? '';
+  const email = pendingEmail ?? '';
   const activeOtpIntent = otpIntent ?? 'register';
 
   useEffect(() => {
     if (!hasHydrated) return;
 
-    if (!phone) {
+    if (!email) {
       router.replace(activeOtpIntent === 'reset' ? '/forgot-password' : '/signup');
     }
-  }, [activeOtpIntent, hasHydrated, phone, router]);
+  }, [activeOtpIntent, hasHydrated, email, router]);
 
   useEffect(() => {
-    if (!hasHydrated || !phone || timeLeft <= 0) return;
+    if (!hasHydrated || !email || timeLeft <= 0) return;
 
     const timerId = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
     return () => clearInterval(timerId);
-  }, [hasHydrated, phone, timeLeft]);
+  }, [hasHydrated, email, timeLeft]);
 
   if (!isReady) {
     return null;
@@ -149,8 +150,8 @@ export default function ConfirmPage() {
     setError('');
 
     const otpCode = code.join('');
-    if (!phone) {
-      setError('رقم الهاتف غير متوفر، يرجى إعادة المحاولة');
+    if (!email) {
+      setError('البريد الإلكتروني غير متوفر، يرجى إعادة المحاولة');
       return;
     }
 
@@ -161,22 +162,17 @@ export default function ConfirmPage() {
 
     try {
       setLoading(true);
-      let pendingRole: 'BUYER' | 'MERCHANT' | undefined = undefined;
-      if (typeof window !== 'undefined') {
-        const storedRole = sessionStorage.getItem('mahaseel-pending-role');
-        if (storedRole === 'BUYER' || storedRole === 'MERCHANT') {
-          pendingRole = storedRole;
-        }
-      }
-      const res = await verifyOtp({ phone, code: otpCode, role: pendingRole });
-      console.log('OTP Verified', res);
+      const res = await verifyOtp({ email, code: otpCode, role: pendingRole ?? undefined });
 
       if (activeOtpIntent === 'reset') {
         router.push('/reset-password');
       } else {
-        const willSetAuthSession = Boolean(res.token && res.user);
-        if (willSetAuthSession && res.token && res.user) {
-          setAuthSession(res.token, res.user);
+        const willSetAuthSession = Boolean(res.accessToken && res.user);
+        if (willSetAuthSession && res.accessToken && res.user) {
+          setAuthSession(
+            { accessToken: res.accessToken, refreshToken: res.refreshToken },
+            res.user
+          );
         }
         clearPendingOtp();
         if (willSetAuthSession) {
@@ -201,7 +197,7 @@ export default function ConfirmPage() {
     return `${m}:${s}`;
   };
 
-  if (!hasHydrated || !phone) {
+  if (!hasHydrated || !email) {
     return null;
   }
 
@@ -216,7 +212,7 @@ export default function ConfirmPage() {
             لقد قمنا بإرسال رمز التأكيد لرقم الهاتف التالي
           </p>
           <p className="mt-1 text-base font-medium text-[#111111]" dir="ltr">
-            {phone}
+            {email}
           </p>
         </div>
 
@@ -231,6 +227,9 @@ export default function ConfirmPage() {
                 }}
                 type="text"
                 inputMode="numeric"
+                aria-label={`رقم ${index + 1} من رمز التحقق`}
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'otp-error' : undefined}
                 maxLength={1} // Only 1 digit per box to prevent overflow/hiding
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
@@ -262,6 +261,7 @@ export default function ConfirmPage() {
 
           {error && (
             <div
+              id="otp-error"
               role="alert"
               className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 text-center"
             >

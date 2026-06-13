@@ -4,12 +4,16 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
 import { PageHeader } from '@/components/merchant/PageHeader';
+import { setUserPassword } from '@/services/api/users';
+import { getErrorMessage } from '@/lib/api-errors';
 
 export default function EditPasswordPage() {
   const router = useRouter();
   const { isReady } = useAuthGuard();
+  const token = useAuthStore((state) => state.token);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -27,12 +31,12 @@ export default function EditPasswordPage() {
     return null;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
       setError('يرجى تعبئة جميع الحقول المطلوبة');
       return;
     }
@@ -48,13 +52,15 @@ export default function EditPasswordPage() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await setUserPassword(newPassword, token);
       setSuccess('تم تحديث كلمة المرور بنجاح');
-      setTimeout(() => {
-        router.push('/merchant/profile');
-      }, 1000);
-    }, 800);
+      setTimeout(() => router.push('/merchant/profile'), 1000);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

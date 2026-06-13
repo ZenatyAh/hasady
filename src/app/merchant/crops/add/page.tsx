@@ -6,7 +6,6 @@ import React, { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
-import { agentLog } from '@/lib/agent-debug';
 import { createCrop, Crop } from '@/services/api/crops';
 import { PageHeader } from '@/components/merchant/PageHeader';
 import { CropForm } from '@/components/merchant/CropForm';
@@ -19,18 +18,10 @@ function AddCropPageContent() {
 
   useEffect(() => {
     if (!isReady) return;
-    // #region agent log
-    agentLog(
-      'merchant/crops/add/page.tsx:mount',
-      'add_crop_page_state',
-      { queryFarmId, hasToken: Boolean(token) },
-      'E'
-    );
-    // #endregion
   }, [isReady, queryFarmId, token]);
 
   const handleSubmit = async (cropData: Omit<Crop, 'id' | 'status'>) => {
-    await createCrop(cropData, token);
+    return createCrop(cropData, token);
   };
 
   if (!isReady) {

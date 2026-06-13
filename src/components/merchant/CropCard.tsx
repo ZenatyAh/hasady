@@ -1,6 +1,7 @@
 // src/components/merchant/CropCard.tsx
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Crop } from '@/services/api/crops';
 
@@ -34,42 +35,13 @@ export function CropCard({ crop, showEdit = false, onDelete, onReOffer }: CropCa
     >
       {/* Image Section */}
       <div className="relative h-48 w-full bg-[#f4f7f5] flex items-center justify-center overflow-hidden">
-        {crop.images && crop.images.length > 0 ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={images[imageIndex]}
-            alt={crop.name}
-            className="h-full w-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-              const parent = (e.target as HTMLElement).parentElement;
-              if (parent) {
-                const placeholder = parent.querySelector('.svg-placeholder');
-                if (placeholder) placeholder.classList.remove('hidden');
-              }
-            }}
-          />
-        ) : null}
-
-        {/* Fallback SVG Placeholder */}
-        <div
-          className={`svg-placeholder absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#e8f1eb] to-[#fcfdfd] text-[#265C38] ${crop.images && crop.images.length > 0 ? 'hidden' : ''}`}
-        >
-          <svg
-            className="h-12 w-12"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z"
-            />
-          </svg>
-          <span className="mt-2 text-xs font-semibold text-gray-400">صورة المحصول</span>
-        </div>
+        <Image
+          src={images[imageIndex]}
+          alt={crop.name}
+          fill
+          sizes="(min-width: 768px) 33vw, 100vw"
+          className="object-cover"
+        />
 
         {/* Image Slider Controls (Only if multiple images) */}
         {images.length > 1 && (

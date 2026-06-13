@@ -3,8 +3,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { getCrops, Crop } from '@/services/api/crops';
+import { browseMarket } from '@/services/api/market';
+import type { Crop } from '@/services/api/crops';
 import { useAuthStore } from '@/lib/store';
 
 // ─── Categories List ─────────────────────────────────────────────────────────
@@ -29,8 +31,15 @@ export default function CustomerBrowsePage() {
     async function loadCrops() {
       try {
         setLoading(true);
-        const data = await getCrops(token);
-        setCrops(data);
+        const result = await browseMarket(
+          {
+            q: search || undefined,
+            categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
+            saleMethod: saleMethodFilter === 'ALL' ? undefined : saleMethodFilter,
+          },
+          token
+        );
+        setCrops(result.items);
       } catch (err) {
         console.error('Failed to load crops:', err);
       } finally {
@@ -38,7 +47,7 @@ export default function CustomerBrowsePage() {
       }
     }
     loadCrops();
-  }, [token]);
+  }, [token, search, selectedCategory, saleMethodFilter]);
 
   // Filter logic
   const filteredCrops = crops.filter((crop) => {
@@ -52,19 +61,21 @@ export default function CustomerBrowsePage() {
     let matchesCategory = true;
     if (selectedCategory !== 'all') {
       if (selectedCategory === 'vegetables') {
-        matchesCategory = crop.name.includes('خيار') || crop.name.includes('طماطم') || crop.name.includes('بصل');
+        matchesCategory =
+          crop.name.includes('خيار') || crop.name.includes('طماطم') || crop.name.includes('بصل');
       } else if (selectedCategory === 'fruits') {
-        matchesCategory = crop.name.includes('تفاح') || crop.name.includes('برتقال') || crop.name.includes('موز');
+        matchesCategory =
+          crop.name.includes('تفاح') || crop.name.includes('برتقال') || crop.name.includes('موز');
       } else if (selectedCategory === 'leafy') {
-        matchesCategory = crop.name.includes('نعناع') || crop.name.includes('خس') || crop.name.includes('جرجير');
+        matchesCategory =
+          crop.name.includes('نعناع') || crop.name.includes('خس') || crop.name.includes('جرجير');
       } else if (selectedCategory === 'dates') {
         matchesCategory = crop.name.includes('تمر') || crop.name.includes('تمور');
       }
     }
 
     // 4. Sale method filter
-    const matchesSaleMethod =
-      saleMethodFilter === 'ALL' || crop.saleMethod === saleMethodFilter;
+    const matchesSaleMethod = saleMethodFilter === 'ALL' || crop.saleMethod === saleMethodFilter;
 
     return matchesSearch && matchesCategory && matchesSaleMethod;
   });
@@ -74,9 +85,12 @@ export default function CustomerBrowsePage() {
       {/* ── Welcome and Search Header ── */}
       <div className="bg-[#e8f1eb] rounded-[2.5rem] p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm border border-[#265C38]/10">
         <div className="space-y-2 text-right md:max-w-md">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-[#265C38]">تسوق محاصيلك الطازجة</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-[#265C38]">
+            تسوق محاصيلك الطازجة
+          </h1>
           <p className="text-sm text-[#4c6a56] leading-relaxed">
-            تصفح المحاصيل المتاحة مباشرة من المزارع السعودية، اشترِ بسعر ثابت أو زايد للحصول على أفضل الصفقات!
+            تصفح المحاصيل المتاحة مباشرة من المزارع السعودية، اشترِ بسعر ثابت أو زايد للحصول على
+            أفضل الصفقات!
           </p>
         </div>
 
@@ -144,7 +158,8 @@ export default function CustomerBrowsePage() {
           {/* Segmented Filter */}
           <div className="flex bg-[#f0ebde]/70 rounded-xl p-1 self-start sm:self-auto">
             {(['ALL', 'FIXED', 'AUCTION'] as const).map((method) => {
-              const label = method === 'ALL' ? 'الكل' : method === 'FIXED' ? 'سعر ثابت' : 'مزاد علني';
+              const label =
+                method === 'ALL' ? 'الكل' : method === 'FIXED' ? 'سعر ثابت' : 'مزاد علني';
               const isSelected = saleMethodFilter === method;
               return (
                 <button
@@ -183,8 +198,11 @@ export default function CustomerBrowsePage() {
             {filteredCrops.map((crop) => {
               const isAuction = crop.saleMethod === 'AUCTION';
               const isSold = crop.status === 'SOLD';
-              const imageUrl = crop.images && crop.images.length > 0 ? crop.images[0] : '/images/placeholder-crop.png';
-              
+              const imageUrl =
+                crop.images && crop.images.length > 0
+                  ? crop.images[0]
+                  : '/images/placeholder-crop.png';
+
               return (
                 <div
                   key={crop.id}
@@ -192,25 +210,13 @@ export default function CustomerBrowsePage() {
                 >
                   {/* Image and Tag */}
                   <div className="relative h-44 bg-[#f4f7f5] flex items-center justify-center overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={imageUrl}
                       alt={crop.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                        const parent = (e.target as HTMLElement).parentElement;
-                        if (parent) {
-                          const placeholder = parent.querySelector('.svg-placeholder');
-                          if (placeholder) placeholder.classList.remove('hidden');
-                        }
-                      }}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover"
                     />
-                    
-                    {/* SVG Placeholder */}
-                    <div className="svg-placeholder absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#e8f1eb] to-[#fcfdfd] text-[#265C38] hidden">
-                      <span className="text-3xl">🌾</span>
-                    </div>
 
                     {/* Method Tag */}
                     <span
@@ -243,10 +249,14 @@ export default function CustomerBrowsePage() {
                       <div className="grid grid-cols-2 gap-3 text-xs border-t border-[#f0ebde]/45 pt-3">
                         <div>
                           <span className="block text-gray-400 font-semibold mb-0.5">المزرعة</span>
-                          <span className="font-bold text-[#333333] truncate block">{crop.farmName}</span>
+                          <span className="font-bold text-[#333333] truncate block">
+                            {crop.farmName}
+                          </span>
                         </div>
                         <div>
-                          <span className="block text-gray-400 font-semibold mb-0.5">الكمية المتاحة</span>
+                          <span className="block text-gray-400 font-semibold mb-0.5">
+                            الكمية المتاحة
+                          </span>
                           <span className="font-bold text-[#333333]">
                             {crop.quantity} {crop.quantityUnit}
                           </span>

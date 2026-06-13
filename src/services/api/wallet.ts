@@ -32,14 +32,6 @@ export interface WithdrawalRequest {
   notes?: string;
 }
 
-export interface BankAccount {
-  id: string;
-  bankName: string;
-  accountHolderName: string;
-  accountNumber: string;
-  isDefault: boolean;
-}
-
 const DEFAULT_WALLET: WalletSummary = {
   balance: 5200,
   pendingBalance: 2000,
@@ -93,16 +85,6 @@ const DEFAULT_WITHDRAWALS: WithdrawalRequest[] = [
   },
 ];
 
-const DEFAULT_BANK_ACCOUNTS: BankAccount[] = [
-  {
-    id: 'bank-1',
-    bankName: 'مصرف الراجحي',
-    accountHolderName: 'محمد علي إسماعيل موسى',
-    accountNumber: '4322343242234',
-    isDefault: true,
-  },
-];
-
 // Helper functions for SessionStorage persistence
 function getStoredWallet(): WalletSummary {
   if (typeof window === 'undefined') return DEFAULT_WALLET;
@@ -142,20 +124,6 @@ function saveStoredWithdrawals(requests: WithdrawalRequest[]): void {
   if (typeof window !== 'undefined') {
     sessionStorage.setItem('hasady-withdrawals', JSON.stringify(requests));
   }
-}
-
-function getStoredBankAccounts(): BankAccount[] {
-  if (typeof window === 'undefined') return DEFAULT_BANK_ACCOUNTS;
-  const stored = sessionStorage.getItem('hasady-bank-accounts');
-  if (stored) {
-    try {
-      return JSON.parse(stored) as BankAccount[];
-    } catch {
-      return DEFAULT_BANK_ACCOUNTS;
-    }
-  }
-  sessionStorage.setItem('hasady-bank-accounts', JSON.stringify(DEFAULT_BANK_ACCOUNTS));
-  return DEFAULT_BANK_ACCOUNTS;
 }
 
 // API Methods
@@ -223,30 +191,30 @@ export async function createWithdrawalRequest(
   );
 }
 
-export async function getBankAccounts(token?: string | null): Promise<BankAccount[]> {
+export interface WalletTransaction {
+  id: string;
+  type: string;
+  amount: number | string;
+  description?: string;
+  createdAt: string;
+}
+
+export async function getWalletTransactions(token?: string | null): Promise<WalletTransaction[]> {
   return apiGet(
-    '/bank-accounts',
+    '/wallet/transactions',
     () =>
-      mockDelay(() => {
-        return getStoredBankAccounts();
-      }),
+      mockDelay(() => [
+        {
+          id: 'tx-1',
+          type: 'CREDIT',
+          amount: 1000,
+          description: 'إيداع',
+          createdAt: new Date().toISOString(),
+        },
+      ]),
     { token }
   );
 }
 
-export async function getDefaultBankAccount(token?: string | null): Promise<BankAccount | null> {
-  return apiGet(
-    '/bank-accounts',
-    () =>
-      mockDelay(() => {
-        const accounts = getStoredBankAccounts();
-        return accounts.find((a) => a.isDefault) || accounts[0] || null;
-      }),
-    { token }
-  ).then((res) => {
-    if (Array.isArray(res)) {
-      return res.find((a: BankAccount) => a.isDefault) || res[0] || null;
-    }
-    return res;
-  });
-}
+export { getBankAccounts, getDefaultBankAccount } from '@/services/api/bank-accounts';
+export type { BankAccount } from '@/services/api/bank-accounts';

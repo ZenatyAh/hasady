@@ -1,41 +1,42 @@
-// src/app/customer/profile/edit/page.tsx
-
 'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
+import { updateMe } from '@/services/api/users';
+import { apiUserToUser } from '@/lib/mappers/user';
+import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerProfileEditPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
-  const token = useAuthStore((state) => state.token);
 
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!accessToken || !user) return;
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      // Simulate profile updates in Zustand store
-      if (user && token) {
-        setAuthSession(token, {
-          ...user,
-          name,
-          phone,
-        });
-      }
-      setIsSubmitting(false);
+    setError('');
+    try {
+      const updated = await updateMe({ fullName: name, phone }, accessToken);
+      setAuthSession({ accessToken, refreshToken: refreshToken ?? '' }, apiUserToUser(updated));
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/customer/profile');
-      }, 1000);
-    }, 1000);
+      setTimeout(() => router.push('/customer/profile'), 1000);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,6 +52,10 @@ export default function CustomerProfileEditPage() {
         <div className="bg-green-50 text-green-600 rounded-xl p-3 text-xs font-bold">
           ✓ تم تحديث البيانات بنجاح، جاري الحفظ...
         </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 text-red-600 rounded-xl p-3 text-xs font-bold">{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -78,9 +83,9 @@ export default function CustomerProfileEditPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-[#265C38] hover:bg-[#1f4f2c] text-white text-xs font-bold py-3.5 rounded-xl transition cursor-pointer disabled:opacity-50"
+          className="w-full bg-[#265C38] hover:bg-[#1f4f2c] text-white text-xs font-bold py-3.5 rounded-xl transition disabled:opacity-50"
         >
-          {isSubmitting ? 'جاري التحديث...' : 'حفظ التعديلات'}
+          {isSubmitting ? 'جاري الحفظ...' : 'حفظ التعديلات'}
         </button>
       </form>
     </div>

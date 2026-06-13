@@ -1,4 +1,5 @@
-import { agentLog } from '@/lib/agent-debug';
+import type { ZodType } from 'zod';
+import { ApiError } from '@/lib/api-errors';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 
@@ -6,164 +7,179 @@ export function getApiMode(): 'remote' | 'mock' {
   return API_BASE ? 'remote' : 'mock';
 }
 
-type ApiErrorBody = { message?: string };
+type ApiErrorBody = {
+  message?: string | string[];
+  statusCode?: number;
+};
 
-export async function apiPost<T>(
-  endpoint: string,
-  body: unknown,
-  mock: () => Promise<T>,
-  options?: { token?: string | null }
-): Promise<T> {
-  if (!API_BASE) {
-    return mock();
-  }
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (options?.token) {
-    headers.Authorization = `Bearer ${options.token}`;
-  }
+type ApiRequestOptions<T> = {
+  token?: string | null;
+  schema?: ZodType<T>;
+  skipAuthRedirect?: boolean;
+};
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
+type ApiEnvelope<T> = {
+  success?: boolean;
+  data?: T;
+  message?: string | string[];
+  statusCode?: number;
+};
+
+export function buildQuery(
+  params: Record<string, string | number | boolean | undefined | null>
+): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    search.set(key, String(value));
   });
+  const query = search.toString();
+  return query ? `?${query}` : '';
+}
 
-  const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
+async function readJson(res: Response): Promise<unknown> {
+  return res.json().catch(() => ({}));
+}
 
-  if (!res.ok) {
-    throw new Error(data.message ?? 'حدث خطأ في الاتصال بالخادم');
+function normalizeMessage(message: string | string[] | undefined, fallback: string): string {
+  if (!message) return fallback;
+  return Array.isArray(message) ? message.join('، ') : message;
+}
+
+function parseResponse<T>(data: unknown, schema?: ZodType<T>): T {
+  if (schema) {
+    return schema.parse(data);
   }
-
   return data as T;
 }
 
-export async function apiGet<T>(
-  endpoint: string,
-  mock: () => Promise<T>,
-  options?: { token?: string | null }
-): Promise<T> {
-  // #region agent log
-  agentLog(
-    'api-client.ts:apiGet',
-    'api_call',
-    {
-      apiMode: API_BASE ? 'remote' : 'mock',
-      endpoint,
-      apiBaseSet: Boolean(API_BASE),
-      hasAuthHeader: Boolean(options?.token),
-    },
-    'A'
-  );
-  // #endregion
+function unwrapEnvelope<T>(payload: unknown): T {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'success' in payload &&
+    (payload as ApiEnvelope<T>).success === true &&
+    'data' in payload
+  ) {
+    return (payload as ApiEnvelope<T>).data as T;
+  }
+  return payload as T;
+}
 
+function handleUnauthorized(skipAuthRedirect?: boolean) {
+  if (typeof window === 'undefined' || skipAuthRedirect) return;
+  const { pathname } = window.location;
+  if (pathname.startsWith('/login') || pathname.startsWith('/signup')) return;
+  window.dispatchEvent(new CustomEvent('mahaseel:unauthorized'));
+}
+
+async function apiRequest<T>({
+  method,
+  endpoint,
+  body,
+  mock,
+  options,
+}: {
+  method: HttpMethod;
+  endpoint: string;
+  body?: unknown;
+  mock: () => Promise<T>;
+  options?: ApiRequestOptions<T>;
+}): Promise<T> {
   if (!API_BASE) {
     return mock();
   }
 
   const headers: Record<string, string> = {};
+  if (body !== undefined && !(body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (options?.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }
 
   const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'GET',
+    method,
     headers,
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   });
 
-  const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
+  const payload = await readJson(res);
 
   if (!res.ok) {
-    throw new Error(data.message ?? 'حدث خطأ في الاتصال بالخادم');
+    const errorBody = payload as ApiErrorBody;
+    if (res.status === 401) {
+      handleUnauthorized(options?.skipAuthRedirect);
+    }
+    throw new ApiError(
+      normalizeMessage(errorBody.message, 'حدث خطأ في الاتصال بالخادم'),
+      errorBody.statusCode ?? res.status
+    );
   }
 
-  return data as T;
+  const unwrapped = unwrapEnvelope<T>(payload);
+  return parseResponse(unwrapped, options?.schema);
 }
 
-export async function apiPut<T>(
+export function apiPost<T>(
   endpoint: string,
   body: unknown,
   mock: () => Promise<T>,
-  options?: { token?: string | null }
+  options?: ApiRequestOptions<T>
 ): Promise<T> {
-  if (!API_BASE) {
-    return mock();
-  }
-
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (options?.token) {
-    headers.Authorization = `Bearer ${options.token}`;
-  }
-
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(body),
-  });
-
-  const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
-
-  if (!res.ok) {
-    throw new Error(data.message ?? 'حدث خطأ في الاتصال بالخادم');
-  }
-
-  return data as T;
+  return apiRequest({ method: 'POST', endpoint, body, mock, options });
 }
 
-export async function apiPatch<T>(
+export function apiGet<T>(
+  endpoint: string,
+  mock: () => Promise<T>,
+  options?: ApiRequestOptions<T>
+): Promise<T> {
+  return apiRequest({ method: 'GET', endpoint, mock, options });
+}
+
+export function apiPut<T>(
   endpoint: string,
   body: unknown,
   mock: () => Promise<T>,
-  options?: { token?: string | null }
+  options?: ApiRequestOptions<T>
 ): Promise<T> {
-  if (!API_BASE) {
-    return mock();
-  }
-
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (options?.token) {
-    headers.Authorization = `Bearer ${options.token}`;
-  }
-
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(body),
-  });
-
-  const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
-
-  if (!res.ok) {
-    throw new Error(data.message ?? 'حدث خطأ في الاتصال بالخادم');
-  }
-
-  return data as T;
+  return apiRequest({ method: 'PUT', endpoint, body, mock, options });
 }
 
-export async function apiDelete<T>(
+export function apiPatch<T>(
+  endpoint: string,
+  body: unknown,
+  mock: () => Promise<T>,
+  options?: ApiRequestOptions<T>
+): Promise<T> {
+  return apiRequest({ method: 'PATCH', endpoint, body, mock, options });
+}
+
+export function apiDelete<T>(
   endpoint: string,
   mock: () => Promise<T>,
-  options?: { token?: string | null }
+  options?: ApiRequestOptions<T>
 ): Promise<T> {
-  if (!API_BASE) {
-    return mock();
-  }
+  return apiRequest({ method: 'DELETE', endpoint, mock, options });
+}
 
-  const headers: Record<string, string> = {};
-  if (options?.token) {
-    headers.Authorization = `Bearer ${options.token}`;
-  }
+export function apiUpload<T>(
+  endpoint: string,
+  formData: FormData,
+  mock: () => Promise<T>,
+  options?: ApiRequestOptions<T>
+): Promise<T> {
+  return apiRequest({ method: 'PATCH', endpoint, body: formData, mock, options });
+}
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method: 'DELETE',
-    headers,
-  });
-
-  const data = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
-
-  if (!res.ok) {
-    throw new Error(data.message ?? 'حدث خطأ في الاتصال بالخادم');
-  }
-
-  return data as T;
+export function apiPutUpload<T>(
+  endpoint: string,
+  formData: FormData,
+  mock: () => Promise<T>,
+  options?: ApiRequestOptions<T>
+): Promise<T> {
+  return apiRequest({ method: 'PUT', endpoint, body: formData, mock, options });
 }

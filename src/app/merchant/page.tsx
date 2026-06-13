@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
-import { agentLog } from '@/lib/agent-debug';
 import { getWalletSummary, WalletSummary } from '@/services/api/wallet';
 import { DashboardHeader } from '@/components/merchant/DashboardHeader';
 import { BalanceCard } from '@/components/merchant/BalanceCard';
@@ -32,29 +31,13 @@ export default function MerchantDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     getWalletSummary(token)
       .then((data) => {
-        // #region agent log
-        agentLog(
-          'merchant/page.tsx:wallet',
-          'wallet_loaded',
-          { balance: data.balance, currency: data.currency },
-          'A'
-        );
-        // #endregion
         setWallet(data);
       })
       .catch((err) => {
-        // #region agent log
-        agentLog(
-          'merchant/page.tsx:wallet',
-          'wallet_error',
-          { message: err instanceof Error ? err.message : 'unknown' },
-          'A'
-        );
-        // #endregion
         console.error('Failed to load wallet summary:', err);
       })
       .finally(() => {
@@ -66,11 +49,10 @@ export default function MerchantDashboard() {
     return null;
   }
 
-  // Fallback defaults for visual accuracy matching the mockup
-  const displayName = user?.name || 'محمد علي إسماعيل';
-  const displayBalance = wallet?.balance ?? 4374;
-  const displayCurrency = wallet?.currency ?? '₪';
-  const displayLastLogin = '14-08-2025';
+  const displayName = user?.name ?? 'مستخدم';
+  const displayBalance = wallet?.balance ?? 0;
+  const displayCurrency = wallet?.currency ?? 'ريال سعودي';
+  const displayLastLogin = new Date().toLocaleDateString('ar-SA');
 
   const menuItems = [
     {

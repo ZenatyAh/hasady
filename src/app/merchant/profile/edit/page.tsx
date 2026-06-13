@@ -1,78 +1,69 @@
-// src/app/merchant/profile/edit/page.tsx
-
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
 import { PageHeader } from '@/components/merchant/PageHeader';
+import { updateMe } from '@/services/api/users';
+import { apiUserToUser } from '@/lib/mappers/user';
+import { getErrorMessage } from '@/lib/api-errors';
 
 export default function EditProfileInfoPage() {
   const router = useRouter();
   const { isReady } = useAuthGuard();
   const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
-  const token = useAuthStore((state) => state.token);
 
-  const [fullName, setFullName] = useState(() => user?.name || '');
-  const [phone, setPhone] = useState(() => user?.phone || '0503202382');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      const timer = setTimeout(() => {
-        setFullName(user.name);
-        setPhone(user.phone || '0503202382');
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
+  const resolvedName = fullName || user?.name || '';
+  const resolvedPhone = phone || user?.phone || '';
 
   if (!isReady) {
     return null;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!fullName.trim() || !phone.trim()) {
+    if (!resolvedName.trim() || !resolvedPhone.trim()) {
       setError('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
 
+    if (!accessToken || !user) return;
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const updated = await updateMe(
+        { fullName: resolvedName.trim(), phone: resolvedPhone.trim() },
+        accessToken
+      );
+      setAuthSession({ accessToken, refreshToken: refreshToken ?? '' }, apiUserToUser(updated));
       setSuccess('تم تحديث البيانات الشخصية بنجاح');
-
-      // Update store
-      if (user && token) {
-        setAuthSession(token, {
-          ...user,
-          name: fullName.trim(),
-          phone: phone.trim(),
-        });
-      }
-
-      setTimeout(() => {
-        router.push('/merchant/profile');
-      }, 1000);
-    }, 800);
+      setTimeout(() => router.push('/merchant/profile'), 1000);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <main className="min-h-screen bg-[#faf8f5] w-full pb-16 px-4 md:px-8 py-6" dir="rtl">
       <div className="max-w-xl mx-auto w-full flex flex-col space-y-6">
-        {/* Header */}
         <PageHeader title="معلومات الحساب الشخصي" backHref="/merchant/profile" />
 
         <div className="bg-[#fdfcfa] p-6 sm:p-8 rounded-[2.5rem] border border-[#f0ebde]/45 shadow-sm space-y-6">
-          {/* Subtitle */}
           <div className="text-center space-y-1.5 pb-2 border-b border-[#f0ebde]/55">
             <p className="text-xs text-gray-400 leading-relaxed">
               حافظ على أمان حسابك، قم بتحديث كلمة المرور الخاصة بك بانتظام
@@ -80,11 +71,9 @@ export default function EditProfileInfoPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 text-right">
-            {/* Full Name Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700">الإسم الكامل</label>
               <div className="relative flex items-center">
-                {/* User Icon (Right) */}
                 <div className="absolute right-3.5 text-gray-400">
                   <svg
                     className="h-4.5 w-4.5"
@@ -102,7 +91,7 @@ export default function EditProfileInfoPage() {
                 </div>
                 <input
                   type="text"
-                  value={fullName}
+                  value={resolvedName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="محمد علي إسماعيل"
                   className="w-full rounded-xl border border-[#e0e0e0] bg-white py-3.5 pr-11 pl-4 text-sm text-[#333333] outline-none transition focus:border-[#265C38]"
@@ -110,11 +99,9 @@ export default function EditProfileInfoPage() {
               </div>
             </div>
 
-            {/* Phone Number Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700">رقم الهاتف</label>
               <div className="relative flex items-center">
-                {/* Phone Icon (Right) */}
                 <div className="absolute right-3.5 text-gray-400">
                   <svg
                     className="h-4.5 w-4.5"
@@ -132,7 +119,7 @@ export default function EditProfileInfoPage() {
                 </div>
                 <input
                   type="text"
-                  value={phone}
+                  value={resolvedPhone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+966503202382"
                   dir="ltr"
@@ -153,7 +140,6 @@ export default function EditProfileInfoPage() {
               </div>
             )}
 
-            {/* Submit Button */}
             <div className="pt-4 border-t border-[#f0ebde]/55">
               <button
                 type="submit"

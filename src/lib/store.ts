@@ -5,28 +5,38 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { User } from '@/services/api/auth';
 
 export type OtpIntent = 'register' | 'reset';
+export type AuthRole = 'BUYER' | 'MERCHANT';
 
 export type AuthSessionState = {
+  accessToken: string | null;
+  refreshToken: string | null;
   token: string | null;
   user: User | null;
-  pendingPhone: string | null;
+  pendingEmail: string | null;
   otpIntent: OtpIntent | null;
+  pendingRole: AuthRole | null;
   hasHydrated: boolean;
-  setAuthSession: (token: string, user: User) => void;
-  setPendingOtp: (phone: string, intent: OtpIntent) => void;
+  setAuthSession: (tokens: { accessToken: string; refreshToken: string }, user: User) => void;
+  setPendingOtp: (email: string, intent: OtpIntent, role?: AuthRole) => void;
   clearPendingOtp: () => void;
   clearAuthSession: () => void;
   clearAllAuthState: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
 };
 
-type PersistedAuthState = Pick<AuthSessionState, 'token' | 'user' | 'pendingPhone' | 'otpIntent'>;
+type PersistedAuthState = Pick<
+  AuthSessionState,
+  'accessToken' | 'refreshToken' | 'token' | 'user' | 'pendingEmail' | 'otpIntent' | 'pendingRole'
+>;
 
 const initialAuthState = {
+  accessToken: null,
+  refreshToken: null,
   token: null,
   user: null,
-  pendingPhone: null,
+  pendingEmail: null,
   otpIntent: null,
+  pendingRole: null,
   hasHydrated: false,
 };
 
@@ -34,10 +44,18 @@ export const useAuthStore = create<AuthSessionState>()(
   persist<AuthSessionState, [], [], PersistedAuthState>(
     (set) => ({
       ...initialAuthState,
-      setAuthSession: (token, user) => set({ token, user }),
-      setPendingOtp: (phone, intent) => set({ pendingPhone: phone, otpIntent: intent }),
-      clearPendingOtp: () => set({ pendingPhone: null, otpIntent: null }),
-      clearAuthSession: () => set({ token: null, user: null }),
+      setAuthSession: (tokens, user) =>
+        set({
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          token: tokens.accessToken,
+          user,
+        }),
+      setPendingOtp: (email, intent, role) =>
+        set({ pendingEmail: email, otpIntent: intent, pendingRole: role ?? null }),
+      clearPendingOtp: () => set({ pendingEmail: null, otpIntent: null, pendingRole: null }),
+      clearAuthSession: () =>
+        set({ accessToken: null, refreshToken: null, token: null, user: null }),
       clearAllAuthState: () =>
         set((state) => ({
           ...initialAuthState,
@@ -49,10 +67,13 @@ export const useAuthStore = create<AuthSessionState>()(
       name: 'mahaseel-auth-session',
       storage: createJSONStorage<PersistedAuthState>(() => sessionStorage),
       partialize: (state) => ({
-        token: state.token,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        token: state.accessToken,
         user: state.user,
-        pendingPhone: state.pendingPhone,
+        pendingEmail: state.pendingEmail,
         otpIntent: state.otpIntent,
+        pendingRole: state.pendingRole,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
@@ -60,3 +81,7 @@ export const useAuthStore = create<AuthSessionState>()(
     }
   )
 );
+
+export function getAccessToken(): string | null {
+  return useAuthStore.getState().accessToken;
+}

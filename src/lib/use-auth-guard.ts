@@ -2,28 +2,46 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { agentLog } from '@/lib/agent-debug';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, type AuthRole } from '@/lib/store';
 
-export function useAuthGuard(redirectTo = '/login') {
+type UseAuthGuardOptions = {
+  redirectTo?: string;
+  requiredRole?: AuthRole;
+};
+
+function getRoleHome(role: AuthRole | undefined) {
+  return role === 'BUYER' ? '/customer' : '/merchant';
+}
+
+export function useAuthGuard(options: UseAuthGuardOptions | string = {}) {
+  const { redirectTo = '/login', requiredRole } =
+    typeof options === 'string' ? { redirectTo: options, requiredRole: undefined } : options;
   const router = useRouter();
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const token = useAuthStore((state) => state.token);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = Boolean(accessToken && user);
+  const hasRequiredRole = !requiredRole || user?.role === requiredRole;
 
   useEffect(() => {
-    // #region agent log
-    agentLog(
-      'use-auth-guard.ts:effect',
-      'auth_guard_state',
-      { hasHydrated, hasToken: Boolean(token), redirectTo, willRedirect: hasHydrated && !token },
-      'B'
-    );
-    // #endregion
     if (!hasHydrated) return;
-    if (!token) {
-      router.replace(redirectTo);
-    }
-  }, [hasHydrated, redirectTo, router, token]);
 
-  return { hasHydrated, token, isReady: hasHydrated && Boolean(token) };
+    if (!isAuthenticated) {
+      router.replace(redirectTo);
+      return;
+    }
+
+    if (!hasRequiredRole) {
+      router.replace(user?.role ? getRoleHome(user.role) : redirectTo);
+    }
+  }, [hasHydrated, hasRequiredRole, isAuthenticated, redirectTo, router, user?.role]);
+
+  return {
+    hasHydrated,
+    token: accessToken,
+    accessToken,
+    user,
+    isAuthenticated,
+    isReady: hasHydrated && isAuthenticated && hasRequiredRole,
+  };
 }

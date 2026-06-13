@@ -6,9 +6,11 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuthGuard } from '@/lib/use-auth-guard';
 import { useAuthStore } from '@/lib/store';
 
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {
+  const { isReady } = useAuthGuard({ requiredRole: 'MERCHANT' });
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
@@ -26,6 +28,10 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
   ];
 
   const displayName = user?.name || 'محمد علي إسماعيل';
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#faf8f5] flex flex-col" dir="rtl">

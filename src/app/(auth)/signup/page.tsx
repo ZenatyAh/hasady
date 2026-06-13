@@ -58,12 +58,11 @@ const signupSchema = z.object({
     .trim()
     .min(1, 'الاسم بالكامل مطلوب')
     .min(3, 'يجب أن يحتوي الاسم على 3 أحرف على الأقل'),
+  email: z.string().min(1, 'البريد الإلكتروني مطلوب').email('البريد الإلكتروني غير صالح'),
   phone: z
     .string()
     .min(1, 'رقم الهاتف مطلوب')
-    .length(10, 'يجب أن يتكون رقم الهاتف من 10 أرقام')
-    .regex(/^\d+$/, 'رقم الهاتف يجب أن يحتوي على أرقام فقط')
-    .startsWith('05', 'يجب أن يبدأ رقم الهاتف ب 05'),
+    .regex(/^\+?[0-9]{8,15}$/, 'رقم الهاتف غير صالح'),
   password: z
     .string()
     .min(1, 'كلمة المرور مطلوبة')
@@ -72,6 +71,7 @@ const signupSchema = z.object({
 
 interface FormErrors {
   name?: string;
+  email?: string;
   phone?: string;
   password?: string;
   general?: string;
@@ -85,6 +85,7 @@ export default function SignupPage() {
   const setPendingOtp = useAuthStore((state) => state.setPendingOtp);
 
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -100,11 +101,12 @@ export default function SignupPage() {
     e.preventDefault();
     setErrors({});
 
-    const result = signupSchema.safeParse({ name, phone, password });
+    const result = signupSchema.safeParse({ name, email, phone, password });
     if (!result.success) {
       const fieldErrors = result.error.flatten().fieldErrors;
       setErrors({
         name: fieldErrors.name?.[0],
+        email: fieldErrors.email?.[0],
         phone: fieldErrors.phone?.[0],
         password: fieldErrors.password?.[0],
       });
@@ -113,22 +115,8 @@ export default function SignupPage() {
 
     try {
       setLoading(true);
-      const res = await register({ name: name.trim(), phone, password, role });
-
-      /**
-       * ⚡ Backend integration point:
-       *   - Save res.token to a cookie / localStorage / auth context
-       *   - Redirect to the dashboard or OTP verification screen
-       *
-       * Example:
-       *   document.cookie = `token=${res.token}; path=/`;
-       *   router.push('/dashboard');
-       */
-      console.log('Registration successful', res);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('mahaseel-pending-role', role);
-      }
-      setPendingOtp(phone, 'register');
+      await register({ fullName: name.trim(), email, phone, password, role });
+      setPendingOtp(email, 'register', role);
       router.push('/confirm');
     } catch (err: unknown) {
       const message =
@@ -192,17 +180,28 @@ export default function SignupPage() {
             error={errors.name}
           />
 
+          <Input
+            id="signup-email"
+            label="البريد الإلكتروني"
+            type="email"
+            placeholder="user@example.com"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={errors.email}
+            dir="ltr"
+            className="text-right"
+          />
+
           {/* Phone number */}
           <Input
             id="signup-phone"
             label="رقم الهاتف"
             type="tel"
-            placeholder="0597450057"
+            placeholder="+966591234567"
             autoComplete="tel"
-            inputMode="numeric"
-            maxLength={10}
             value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => setPhone(e.target.value)}
             error={errors.phone}
             dir="ltr"
             className="text-right"

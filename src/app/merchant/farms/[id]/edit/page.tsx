@@ -23,7 +23,7 @@ export default function EditFarmPage({ params }: EditFarmPageProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isReady || !token || !id) return;
+    if (!isReady || !id) return;
 
     getFarmById(id, token)
       .then((data) => {
@@ -44,7 +44,7 @@ export default function EditFarmPage({ params }: EditFarmPageProps) {
 
   const handleSubmit = async (farmData: Omit<Farm, 'id' | 'status'>) => {
     if (!id) return;
-    await updateFarm(id, farmData, token);
+    return updateFarm(id, farmData, token);
   };
 
   if (!isReady) {

@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { Almarai } from 'next/font/google';
 import './globals.css';
+import QueryProvider from '@/components/providers/QueryProvider';
+import { AuthSessionProvider } from '@/components/providers/AuthSessionProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const almarai = Almarai({
   variable: '--font-almarai',
@@ -9,8 +12,25 @@ const almarai = Almarai({
 });
 
 export const metadata: Metadata = {
-  title: 'محاصيل',
-  description: 'تطبيق محاصيل — تسجيل الدخول وإدارة الحساب',
+  title: {
+    default: 'محاصيل | منصة المنتجات الزراعية',
+    template: '%s | محاصيل',
+  },
+  description:
+    'منصة محاصيل الإلكترونية لبيع وشراء المنتجات الزراعية والمحاصيل الطازجة عبر مزادات أو أسعار ثابتة.',
+  openGraph: {
+    title: 'محاصيل | منصة المنتجات الزراعية',
+    description: 'منصة محاصيل الإلكترونية لبيع وشراء المنتجات الزراعية والمحاصيل الطازجة.',
+    url: 'https://mahaseel.com',
+    siteName: 'محاصيل',
+    locale: 'ar_SA',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'محاصيل | منصة المنتجات الزراعية',
+    description: 'منصة محاصيل الإلكترونية لبيع وشراء المنتجات الزراعية والمحاصيل الطازجة.',
+  },
 };
 
 export default function RootLayout({
@@ -19,8 +39,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" className={`${almarai.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ar" className={`${almarai.variable} h-full antialiased`} dir="rtl">
+      <body className="min-h-full flex flex-col">
+        <QueryProvider>
+          <AuthSessionProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthSessionProvider>
+        </QueryProvider>
+      </body>
     </html>
   );
 }

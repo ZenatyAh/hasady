@@ -3,8 +3,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { getIncomingOrders, PurchaseOrder } from '@/services/api/orders';
+import { getMyOrders, PurchaseOrder } from '@/services/api/orders';
 import { useAuthStore } from '@/lib/store';
 
 export default function CustomerOrdersPage() {
@@ -17,7 +18,7 @@ export default function CustomerOrdersPage() {
     async function loadOrders() {
       try {
         setLoading(true);
-        const data = await getIncomingOrders(token);
+        const data = await getMyOrders(token);
         setOrders(data);
       } catch (err) {
         console.error('Failed to load purchase orders:', err);
@@ -33,9 +34,15 @@ export default function CustomerOrdersPage() {
   const getStatusLabelAndStyle = (status: PurchaseOrder['status']) => {
     switch (status) {
       case 'PENDING':
-        return { label: 'قيد الانتظار', style: 'bg-yellow-50 text-yellow-600 border border-yellow-200/50' };
+        return {
+          label: 'قيد الانتظار',
+          style: 'bg-yellow-50 text-yellow-600 border border-yellow-200/50',
+        };
       case 'ACCEPTED':
-        return { label: 'تم القبول', style: 'bg-green-50 text-green-600 border border-green-200/50' };
+        return {
+          label: 'تم القبول',
+          style: 'bg-green-50 text-green-600 border border-green-200/50',
+        };
       case 'REJECTED':
         return { label: 'مرفوض', style: 'bg-red-50 text-red-600 border border-red-200/50' };
       default:
@@ -48,7 +55,9 @@ export default function CustomerOrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#f0ebde]/45 pb-4 text-right">
         <div>
           <h1 className="text-2xl font-extrabold text-[#111111]">طلباتي وعروضي</h1>
-          <p className="text-xs text-gray-400 mt-1">تتبع حالة مشترياتك الفورية وسوماتك في المزادات المفتوحة</p>
+          <p className="text-xs text-gray-400 mt-1">
+            تتبع حالة مشترياتك الفورية وسوماتك في المزادات المفتوحة
+          </p>
         </div>
 
         {/* Tab switcher */}
@@ -109,15 +118,18 @@ export default function CustomerOrdersPage() {
                 {/* Details Section */}
                 <div className="flex items-center gap-4 text-right w-full md:w-auto">
                   <div className="relative h-20 w-20 bg-[#f4f7f5] rounded-2xl overflow-hidden shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={order.image || '/images/placeholder-crop.png'}
                       alt={order.cropName}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="80px"
+                      className="object-cover"
                     />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[10px] text-gray-400 font-semibold block">{order.createdAt}</span>
+                    <span className="text-[10px] text-gray-400 font-semibold block">
+                      {order.createdAt}
+                    </span>
                     <h3 className="text-base font-extrabold text-[#111111]">{order.cropName}</h3>
                     <p className="text-xs text-gray-400 line-clamp-1">{order.description}</p>
                   </div>
@@ -126,13 +138,17 @@ export default function CustomerOrdersPage() {
                 {/* Status, Price, and Action */}
                 <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto border-t border-[#f0ebde]/30 pt-4 md:border-t-0 md:pt-0">
                   <div className="flex flex-col text-right">
-                    <span className="text-[10px] text-gray-400 font-semibold mb-0.5">القيمة المقترحة</span>
+                    <span className="text-[10px] text-gray-400 font-semibold mb-0.5">
+                      القيمة المقترحة
+                    </span>
                     <span className="text-sm font-extrabold text-[#265C38]">
                       {order.offeredPrice} ريال
                     </span>
                   </div>
 
-                  <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${statusConfig.style}`}>
+                  <span
+                    className={`text-xs font-bold px-3 py-1.5 rounded-xl ${statusConfig.style}`}
+                  >
                     {statusConfig.label}
                   </span>
 

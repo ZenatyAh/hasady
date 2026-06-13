@@ -30,7 +30,7 @@ export default function WithdrawProfitsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     Promise.all([getWalletSummary(token), getDefaultBankAccount(token)])
       .then(([walletData, bankData]) => {

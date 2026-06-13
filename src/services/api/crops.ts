@@ -1,6 +1,7 @@
 // src/services/api/crops.ts
 
-import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api-client';
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload, buildQuery } from '@/lib/api-client';
+import { cropToCreateProductDto, productToCrop, type ApiProduct } from '@/lib/mappers/product';
 
 const MOCK_DELAY_MS = 1000;
 
@@ -33,6 +34,7 @@ export interface Crop {
   farmName: string;
   contact: string;
   managerName: string;
+  categoryId?: string;
 }
 
 const DEFAULT_CROPS: Crop[] = [
@@ -94,15 +96,31 @@ function saveStoredCrops(crops: Crop[]): void {
   }
 }
 
-export async function getCrops(token?: string | null): Promise<Crop[]> {
-  return apiGet(
-    '/products',
+function mapProductList(data: ApiProduct[] | Crop[]): Crop[] {
+  if (!Array.isArray(data)) return [];
+  if (data.length > 0 && 'farmName' in (data[0] as Crop)) {
+    return data as Crop[];
+  }
+  return (data as ApiProduct[]).map(productToCrop);
+}
+
+function mapProduct(data: ApiProduct | Crop | null): Crop | null {
+  if (!data) return null;
+  if ('farmName' in data) return data as Crop;
+  return productToCrop(data as ApiProduct);
+}
+
+export async function getCrops(token?: string | null, status?: string): Promise<Crop[]> {
+  const query = buildQuery({ status });
+  const data = await apiGet(
+    `/products${query}`,
     () =>
       mockDelay(() => {
         return getStoredCrops();
       }),
     { token }
   );
+  return mapProductList(data as ApiProduct[] | Crop[]);
 }
 
 export async function getCropsByFarm(farmId: string, token?: string | null): Promise<Crop[]> {
@@ -118,7 +136,7 @@ export async function getCropsByFarm(farmId: string, token?: string | null): Pro
 }
 
 export async function getCropById(id: string, token?: string | null): Promise<Crop | null> {
-  return apiGet(
+  const data = await apiGet(
     `/products/${id}`,
     () =>
       mockDelay(() => {
@@ -127,22 +145,24 @@ export async function getCropById(id: string, token?: string | null): Promise<Cr
       }),
     { token }
   );
+  return mapProduct(data as ApiProduct | Crop | null);
 }
 
 export async function createCrop(
   cropData: Omit<Crop, 'id' | 'status'>,
   token?: string | null
 ): Promise<Crop> {
-  return apiPost(
+  const payload = cropToCreateProductDto(cropData, { categoryId: cropData.categoryId });
+  const data = await apiPost(
     '/products',
-    cropData,
+    payload,
     () =>
       mockDelay(() => {
         const crops = getStoredCrops();
         const newCrop: Crop = {
           ...cropData,
           id: `crop-${Date.now()}`,
-          status: 'AVAILABLE', // Defaults to available for sale
+          status: 'AVAILABLE',
         };
         const updated = [...crops, newCrop];
         saveStoredCrops(updated);
@@ -150,6 +170,7 @@ export async function createCrop(
       }),
     { token }
   );
+  return mapProduct(data as ApiProduct | Crop) as Crop;
 }
 
 export async function updateCrop(
@@ -157,9 +178,14 @@ export async function updateCrop(
   cropData: Partial<Crop>,
   token?: string | null
 ): Promise<Crop> {
-  return apiPatch(
+  const payload = cropData.farmName
+    ? cropToCreateProductDto(cropData as Omit<Crop, 'id' | 'status'>, {
+        categoryId: cropData.categoryId,
+      })
+    : cropData;
+  const data = await apiPatch(
     `/products/${id}`,
-    cropData,
+    payload,
     () =>
       mockDelay(() => {
         const crops = getStoredCrops();
@@ -178,6 +204,7 @@ export async function updateCrop(
       }),
     { token }
   );
+  return mapProduct(data as ApiProduct | Crop) as Crop;
 }
 
 export async function deleteCrop(id: string, token?: string | null): Promise<{ success: boolean }> {
@@ -195,7 +222,7 @@ export async function deleteCrop(id: string, token?: string | null): Promise<{ s
 }
 
 export async function relistCrop(id: string, token?: string | null): Promise<Crop> {
-  return apiPatch(
+  const data = await apiPatch(
     `/products/${id}/relist`,
     {},
     () =>
@@ -216,4 +243,39 @@ export async function relistCrop(id: string, token?: string | null): Promise<Cro
       }),
     { token }
   );
+  return mapProduct(data as ApiProduct | Crop) as Crop;
+}
+
+export async function uploadProductMedia(
+  id: string,
+  files: File[],
+  token?: string | null
+): Promise<Crop> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
+
+  const data = await apiUpload(
+    `/products/${id}/media`,
+    formData,
+    () =>
+      mockDelay(() => {
+        const crops = getStoredCrops();
+        const crop = crops.find((item) => item.id === id);
+        if (!crop) throw new Error('المحصول غير موجود');
+        return crop;
+      }),
+    { token }
+  );
+
+  return mapProduct(data as ApiProduct | Crop) as Crop;
+}
+
+export async function deleteProductMedia(
+  id: string,
+  mediaId: string,
+  token?: string | null
+): Promise<void> {
+  await apiDelete(`/products/${id}/media/${mediaId}`, () => mockDelay(() => ({ success: true })), {
+    token,
+  });
 }

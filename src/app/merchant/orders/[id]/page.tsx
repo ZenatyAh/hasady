@@ -27,7 +27,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     getOrderDetail(id, token)
       .then((data) => {

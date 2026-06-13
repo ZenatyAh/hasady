@@ -14,7 +14,7 @@ export default function AddFarmPage() {
   const token = useAuthStore((state) => state.token);
 
   const handleSubmit = async (farmData: Omit<Farm, 'id' | 'status'>) => {
-    await createFarm(farmData, token);
+    return createFarm(farmData, token);
   };
 
   if (!isReady) {

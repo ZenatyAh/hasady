@@ -1,6 +1,7 @@
 // src/services/api/orders.ts
 
-import { apiGet, apiPut } from '@/lib/api-client';
+import { apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
+import { orderToPurchaseOrder, type ApiOrder } from '@/lib/mappers/order';
 
 const MOCK_DELAY_MS = 600;
 
@@ -28,8 +29,16 @@ export interface PurchaseOrder {
   offeredPrice: number;
   currency: string;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  backendStatus?: string;
   createdAt: string;
   image: string;
+  productId?: string;
+  rejectionReason?: string;
+  deliveryStatus?: string | null;
+}
+
+function isApiOrder(value: unknown): value is ApiOrder {
+  return Boolean(value && typeof value === 'object' && 'saleMethod' in (value as ApiOrder));
 }
 
 const DEFAULT_ORDERS: PurchaseOrder[] = [
@@ -45,68 +54,10 @@ const DEFAULT_ORDERS: PurchaseOrder[] = [
     offeredPrice: 4900,
     currency: 'ريال سعودي',
     status: 'PENDING',
+    backendStatus: 'PENDING',
     createdAt: '14-09-2025',
     image: '/images/onboard4.svg',
-  },
-  {
-    id: 'ord-2',
-    type: 'fixed',
-    cropName: 'خيار بلدي',
-    description: 'خيار طازج مزروع في بيوت بلاستيكية، جاهز للاستهلاك، بجودة ممتازة',
-    buyerName: 'أحمد محمود العلي',
-    buyerPhone: '+966504938274',
-    buyerRating: 5,
-    buyerId: '2308920932094',
-    offeredPrice: 4850,
-    currency: 'ريال سعودي',
-    status: 'PENDING',
-    createdAt: '14-09-2025',
-    image: '/images/onboard4.svg',
-  },
-  {
-    id: 'ord-3',
-    type: 'fixed',
-    cropName: 'خيار بلدي',
-    description: 'خيار طازج مزروع في بيوت بلاستيكية، جاهز للاستهلاك، بجودة ممتازة',
-    buyerName: 'خالد يوسف الفهد',
-    buyerPhone: '+966551827364',
-    buyerRating: 4,
-    buyerId: '2308920932095',
-    offeredPrice: 5000,
-    currency: 'ريال سعودي',
-    status: 'PENDING',
-    createdAt: '14-09-2025',
-    image: '/images/onboard4.svg',
-  },
-  {
-    id: 'ord-4',
-    type: 'auction',
-    cropName: 'خيار بلدي (مزاد)',
-    description: 'خيار طازج مزروع في بيوت بلاستيكية، جاهز للاستهلاك، بجودة ممتازة',
-    buyerName: 'صالح عبد الله البشري',
-    buyerPhone: '+966567283940',
-    buyerRating: 4.5,
-    buyerId: '2308920932096',
-    offeredPrice: 5100,
-    currency: 'ريال سعودي',
-    status: 'PENDING',
-    createdAt: '14-09-2025',
-    image: '/images/onboard4.svg',
-  },
-  {
-    id: 'ord-5',
-    type: 'auction',
-    cropName: 'خيار بلدي (مزاد)',
-    description: 'خيار طازج مزروع في بيوت بلاستيكية، جاهز للاستهلاك، بجودة ممتازة',
-    buyerName: 'علي حسن العتيبي',
-    buyerPhone: '+966509876543',
-    buyerRating: 3.5,
-    buyerId: '2308920932097',
-    offeredPrice: 4700,
-    currency: 'ريال سعودي',
-    status: 'PENDING',
-    createdAt: '14-09-2025',
-    image: '/images/onboard4.svg',
+    productId: 'crop-1',
   },
 ];
 
@@ -130,66 +81,216 @@ function saveStoredOrders(orders: PurchaseOrder[]): void {
   }
 }
 
-export async function getIncomingOrders(token?: string | null): Promise<PurchaseOrder[]> {
-  return apiGet(
-    '/orders/incoming',
-    () =>
-      mockDelay(() => {
-        return getStoredOrders();
-      }),
-    { token }
+function mapOrders(orders: ApiOrder[]): PurchaseOrder[] {
+  return orders.map(orderToPurchaseOrder);
+}
+
+function mapOrder(order: ApiOrder): PurchaseOrder {
+  return orderToPurchaseOrder(order);
+}
+
+function toPurchaseOrder(data: unknown): PurchaseOrder {
+  if (data && typeof data === 'object' && 'cropName' in data) {
+    return data as PurchaseOrder;
+  }
+  if (isApiOrder(data)) {
+    return mapOrder(data);
+  }
+  throw new Error('استجابة الطلب غير صالحة');
+}
+
+function normalizeOrders(data: unknown): ApiOrder[] {
+  if (!Array.isArray(data) || data.length === 0) return [];
+  if (isApiOrder(data[0])) return data as ApiOrder[];
+  return (data as PurchaseOrder[]).map(
+    (order) =>
+      ({
+        id: order.id,
+        productId: order.productId ?? order.id,
+        saleMethod: order.type === 'auction' ? 'AUCTION' : 'FIXED',
+        offeredPrice: order.offeredPrice,
+        status: order.backendStatus ?? order.status,
+        createdAt: order.createdAt,
+        product: null,
+        buyer: { id: order.buyerId, fullName: order.buyerName, phone: order.buyerPhone },
+      }) as ApiOrder
   );
+}
+
+export async function getMyOrders(token?: string | null): Promise<PurchaseOrder[]> {
+  const data = await apiGet('/orders/my', () => mockDelay(() => getStoredOrders()), { token });
+  return mapOrders(normalizeOrders(data));
+}
+
+export async function getIncomingOrders(token?: string | null): Promise<PurchaseOrder[]> {
+  const data = await apiGet('/orders/incoming', () => mockDelay(() => getStoredOrders()), {
+    token,
+  });
+  return mapOrders(normalizeOrders(data));
 }
 
 export async function getOrderDetail(
   id: string,
   token?: string | null
 ): Promise<PurchaseOrder | null> {
-  return apiGet(
+  const data = await apiGet(
     `/orders/${id}`,
     () =>
       mockDelay(() => {
         const orders = getStoredOrders();
-        return orders.find((o) => o.id === id) || null;
+        return orders.find((o) => o.id === id) ?? null;
       }),
     { token }
   );
+
+  if (!data) return null;
+  return toPurchaseOrder(data);
+}
+
+export async function placeOrder(
+  payload: { productId: string; offeredPrice: number; quantity: number; notes?: string },
+  token?: string | null
+): Promise<PurchaseOrder> {
+  const data = await apiPost(
+    '/orders',
+    payload,
+    () =>
+      mockDelay(() => {
+        const orders = getStoredOrders();
+        const newOrder: PurchaseOrder = {
+          id: `ord-${Date.now()}`,
+          type: 'fixed',
+          cropName: 'محصول جديد',
+          description: payload.notes ?? '',
+          buyerName: 'مشتري',
+          buyerPhone: '',
+          buyerRating: 0,
+          buyerId: 'buyer-1',
+          offeredPrice: payload.offeredPrice,
+          currency: 'ريال سعودي',
+          status: 'PENDING',
+          backendStatus: 'PENDING',
+          createdAt: new Date().toLocaleDateString('ar-SA'),
+          image: '/images/placeholder-crop.png',
+          productId: payload.productId,
+        };
+        saveStoredOrders([newOrder, ...orders]);
+        return newOrder;
+      }),
+    { token }
+  );
+
+  return toPurchaseOrder(data);
+}
+
+export async function cancelOrder(id: string, token?: string | null): Promise<PurchaseOrder> {
+  const data = await apiDelete(
+    `/orders/${id}/cancel`,
+    () =>
+      mockDelay(() => {
+        const orders = getStoredOrders();
+        const index = orders.findIndex((o) => o.id === id);
+        if (index === -1) throw new Error('الطلب غير موجود');
+        orders[index] = { ...orders[index], status: 'REJECTED', backendStatus: 'CANCELLED' };
+        saveStoredOrders(orders);
+        return orders[index];
+      }),
+    { token }
+  );
+
+  return toPurchaseOrder(data);
+}
+
+export async function confirmDelivery(id: string, token?: string | null): Promise<PurchaseOrder> {
+  const data = await apiPut(
+    `/orders/${id}/confirm`,
+    {},
+    () =>
+      mockDelay(() => {
+        const orders = getStoredOrders();
+        const index = orders.findIndex((o) => o.id === id);
+        if (index === -1) throw new Error('الطلب غير موجود');
+        orders[index] = { ...orders[index], status: 'ACCEPTED', backendStatus: 'COMPLETED' };
+        saveStoredOrders(orders);
+        return orders[index];
+      }),
+    { token }
+  );
+
+  return toPurchaseOrder(data);
 }
 
 export async function acceptOrder(id: string, token?: string | null): Promise<PurchaseOrder> {
-  return apiPut(
+  const data = await apiPut(
     `/orders/${id}/accept`,
     {},
     () =>
       mockDelay(() => {
         const orders = getStoredOrders();
         const index = orders.findIndex((o) => o.id === id);
-        if (index === -1) {
-          throw new Error('الطلب غير موجود في النظام');
-        }
-        orders[index] = { ...orders[index], status: 'ACCEPTED' };
+        if (index === -1) throw new Error('الطلب غير موجود');
+        orders[index] = {
+          ...orders[index],
+          status: 'ACCEPTED',
+          backendStatus: 'AWAITING_PAYMENT',
+        };
         saveStoredOrders(orders);
         return orders[index];
       }),
     { token }
   );
+
+  return toPurchaseOrder(data);
 }
 
-export async function rejectOrder(id: string, token?: string | null): Promise<PurchaseOrder> {
-  return apiPut(
+export async function rejectOrder(
+  id: string,
+  reason: string,
+  token?: string | null
+): Promise<PurchaseOrder> {
+  const data = await apiPut(
     `/orders/${id}/reject`,
-    {},
+    { reason },
     () =>
       mockDelay(() => {
         const orders = getStoredOrders();
         const index = orders.findIndex((o) => o.id === id);
-        if (index === -1) {
-          throw new Error('الطلب غير موجود في النظام');
-        }
-        orders[index] = { ...orders[index], status: 'REJECTED' };
+        if (index === -1) throw new Error('الطلب غير موجود');
+        orders[index] = {
+          ...orders[index],
+          status: 'REJECTED',
+          backendStatus: 'REJECTED',
+          rejectionReason: reason,
+        };
         saveStoredOrders(orders);
         return orders[index];
       }),
     { token }
   );
+
+  return toPurchaseOrder(data);
+}
+
+export async function updateOrderStatus(
+  id: string,
+  status: string,
+  token?: string | null,
+  reason?: string
+): Promise<PurchaseOrder> {
+  const data = await apiPut(
+    `/orders/${id}/status`,
+    { status, reason },
+    () =>
+      mockDelay(() => {
+        const orders = getStoredOrders();
+        const index = orders.findIndex((o) => o.id === id);
+        if (index === -1) throw new Error('الطلب غير موجود');
+        orders[index] = { ...orders[index], deliveryStatus: status };
+        saveStoredOrders(orders);
+        return orders[index];
+      }),
+    { token }
+  );
+
+  return toPurchaseOrder(data);
 }

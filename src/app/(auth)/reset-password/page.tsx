@@ -124,10 +124,10 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const pendingPhone = useAuthStore((state) => state.pendingPhone);
+  const pendingEmail = useAuthStore((state) => state.pendingEmail);
   const otpIntent = useAuthStore((state) => state.otpIntent);
   const clearPendingOtp = useAuthStore((state) => state.clearPendingOtp);
-  const phone = pendingPhone ?? '';
+  const email = pendingEmail ?? '';
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
     password?: string;
@@ -138,10 +138,10 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     if (!hasHydrated) return;
 
-    if (!phone || otpIntent !== 'reset') {
+    if (!email || otpIntent !== 'reset') {
       router.replace('/forgot-password');
     }
-  }, [hasHydrated, otpIntent, phone, router]);
+  }, [hasHydrated, otpIntent, email, router]);
 
   if (!isReady) {
     return null;
@@ -167,15 +167,14 @@ export default function ResetPasswordPage() {
     setErrors({});
 
     if (!validate()) return;
-    if (!phone) {
-      setErrors({ general: 'رقم الهاتف غير متوفر، يرجى إعادة المحاولة' });
+    if (!email) {
+      setErrors({ general: 'البريد الإلكتروني غير متوفر، يرجى إعادة المحاولة' });
       return;
     }
 
     try {
       setLoading(true);
-      const res = await resetPassword({ phone, password });
-      console.log('Password reset successful', res);
+      await resetPassword({ email, password, code: '000000' });
 
       clearPendingOtp();
       router.push('/reset-success');
@@ -190,7 +189,7 @@ export default function ResetPasswordPage() {
 
   const getEyeIconClass = (show: boolean) => `h-5 w-5 ${show ? 'text-[#265C38]' : 'text-gray-400'}`;
 
-  if (!hasHydrated || !phone || otpIntent !== 'reset') {
+  if (!hasHydrated || !email || otpIntent !== 'reset') {
     return null;
   }
 

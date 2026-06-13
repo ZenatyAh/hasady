@@ -23,7 +23,7 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isReady || !token) return;
+    if (!isReady) return;
 
     Promise.all([getWalletSummary(token), getWithdrawalRequests(token)])
       .then(([walletData, requestsData]) => {
