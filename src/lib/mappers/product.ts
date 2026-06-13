@@ -11,7 +11,7 @@ export type ApiProduct = {
   name: string;
   description?: string | null;
   status: string;
-  saleMethod: 'FIXED' | 'AUCTION';
+  saleMethod: 'FIXED' | 'AUCTION' | 'fixed' | 'auction';
   quantity: number | string;
   unit: string;
   fixedPrice?: number | string | null;
@@ -38,17 +38,29 @@ function toNumber(value: number | string | null | undefined, fallback = 0): numb
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function normalizeSaleMethod(method: string): 'FIXED' | 'AUCTION' {
+  return method.toLowerCase() === 'auction' ? 'AUCTION' : 'FIXED';
+}
+
 function mapStatus(status: string): Crop['status'] {
-  if (status === 'sold' || status === 'SOLD') return 'SOLD';
+  const normalized = status.toLowerCase();
+  if (normalized === 'sold') return 'SOLD';
   return 'AVAILABLE';
 }
 
 function mapUnit(unit: string): string {
   const unitMap: Record<string, string> = {
     KG: 'كغم',
+    kg: 'كغم',
     TON: 'طن',
+    ton: 'طن',
     BOX: 'صندوق',
+    box: 'صندوق',
     BUNCH: 'حزمة',
+    head: 'رأس',
+    HEAD: 'رأس',
+    piece: 'قطعة',
+    PIECE: 'قطعة',
   };
   return unitMap[unit] ?? unit;
 }
@@ -56,15 +68,21 @@ function mapUnit(unit: string): string {
 function mapDeliveryMethod(method: string): string {
   const deliveryMap: Record<string, string> = {
     FROM_FARM: 'من المزرعة',
+    from_farm: 'من المزرعة',
     DELIVERY: 'توصيل',
+    delivery: 'توصيل',
+    driver: 'سائق',
+    DRIVER: 'سائق',
     PICKUP: 'استلام',
+    pickup: 'استلام',
   };
   return deliveryMap[method] ?? method;
 }
 
 export function productToCrop(product: ApiProduct): Crop {
+  const saleMethod = normalizeSaleMethod(product.saleMethod);
   const price =
-    product.saleMethod === 'AUCTION'
+    saleMethod === 'AUCTION'
       ? toNumber(product.currentBid ?? product.auctionStartPrice)
       : toNumber(product.fixedPrice);
 
@@ -78,7 +96,7 @@ export function productToCrop(product: ApiProduct): Crop {
     name: product.name,
     description: product.description ?? '',
     status: mapStatus(product.status),
-    saleMethod: product.saleMethod,
+    saleMethod,
     quantity: toNumber(product.quantity),
     quantityUnit: mapUnit(product.unit),
     price,
