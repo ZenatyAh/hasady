@@ -1,5 +1,6 @@
 import type { ZodType } from 'zod';
 import { ApiError } from '@/lib/api-errors';
+import { useAuthStore } from '@/lib/store';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 
@@ -75,6 +76,20 @@ function handleUnauthorized(skipAuthRedirect?: boolean) {
   window.dispatchEvent(new CustomEvent('mahaseel:unauthorized'));
 }
 
+let isRefreshing = false;
+let failedQueue: { resolve: (token: string) => void; reject: (err: unknown) => void }[] = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token as string);
+    }
+  });
+  failedQueue = [];
+};
+
 async function apiRequest<T>({
   method,
   endpoint,
@@ -92,21 +107,87 @@ async function apiRequest<T>({
     return mock();
   }
 
-  const headers: Record<string, string> = {};
-  if (body !== undefined && !(body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-  if (options?.token) {
-    headers.Authorization = `Bearer ${options.token}`;
-  }
+  const performFetch = async (tokenOverride?: string): Promise<Response> => {
+    const headers: Record<string, string> = {};
+    if (body !== undefined && !(body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const token = tokenOverride || options?.token;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-  });
+    return fetch(`${API_BASE}${endpoint}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+    });
+  };
 
-  const payload = await readJson(res);
+  let res = await performFetch();
+  let payload = await readJson(res);
+
+  // Silent refresh flow
+  if (res.status === 401 && !endpoint.includes('/auth/refresh')) {
+    const authState = useAuthStore.getState();
+    const refreshToken = authState.refreshToken;
+
+    if (refreshToken) {
+      if (isRefreshing) {
+        try {
+          const newToken = await new Promise<string>((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          });
+          res = await performFetch(newToken);
+          payload = await readJson(res);
+        } catch (err) {
+          handleUnauthorized(options?.skipAuthRedirect);
+          throw err;
+        }
+      } else {
+        isRefreshing = true;
+        try {
+          const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+
+          if (!refreshRes.ok) throw new Error('Refresh failed');
+
+          const refreshPayload = await readJson(refreshRes);
+          const unwrappedRefresh = unwrapEnvelope<{ accessToken: string; refreshToken?: string }>(
+            refreshPayload
+          );
+
+          if (unwrappedRefresh?.accessToken) {
+            authState.setAuthSession(
+              {
+                accessToken: unwrappedRefresh.accessToken,
+                refreshToken: unwrappedRefresh.refreshToken || refreshToken,
+              },
+              authState.user!
+            );
+
+            processQueue(null, unwrappedRefresh.accessToken);
+            res = await performFetch(unwrappedRefresh.accessToken);
+            payload = await readJson(res);
+          } else {
+            throw new Error('Invalid token structure');
+          }
+        } catch (err) {
+          processQueue(err, null);
+          authState.clearAuthSession();
+          handleUnauthorized(options?.skipAuthRedirect);
+          throw new ApiError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً', 401);
+        } finally {
+          isRefreshing = false;
+        }
+      }
+    } else {
+      handleUnauthorized(options?.skipAuthRedirect);
+    }
+  }
 
   if (!res.ok) {
     const errorBody = payload as ApiErrorBody;

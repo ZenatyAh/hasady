@@ -3,6 +3,7 @@ import { Almarai } from 'next/font/google';
 import './globals.css';
 import QueryProvider from '@/components/providers/QueryProvider';
 import { AuthSessionProvider } from '@/components/providers/AuthSessionProvider';
+import { SocketProvider } from '@/components/providers/SocketProvider';
 import { ToastProvider } from '@/components/ui/Toast';
 
 const almarai = Almarai({
@@ -43,7 +44,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <QueryProvider>
           <AuthSessionProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <SocketProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </SocketProvider>
           </AuthSessionProvider>
         </QueryProvider>
       </body>
