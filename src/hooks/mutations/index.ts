@@ -58,7 +58,7 @@ export function useAcceptOrder() {
 export function useRejectOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectOrder(id, reason),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectOrder(id, { reason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.incomingOrders });
     },
@@ -89,7 +89,8 @@ export function useCancelOrder() {
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => updateOrderStatus(id, status),
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      updateOrderStatus(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.incomingOrders });
     },

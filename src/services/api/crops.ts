@@ -13,8 +13,8 @@ import {
   updateProduct,
   deleteProduct,
   relistProduct,
-  uploadProductMedia,
-  deleteProductMedia,
+  uploadProductMedia as uploadProductMediaApi,
+  deleteProductMedia as deleteProductMediaApi,
 } from '@/services/api/products';
 
 export interface Crop {
@@ -89,7 +89,7 @@ export async function relistCrop(id: string): Promise<Crop> {
 }
 
 export async function uploadProductMediaForCrop(id: string, files: File[]): Promise<Crop> {
-  const product = await uploadProductMedia(id, files);
+  const product = await uploadProductMediaApi(id, files);
   return productToCropSafe(product);
 }
 
@@ -97,7 +97,7 @@ export async function uploadProductMediaForCrop(id: string, files: File[]): Prom
 export const uploadProductMedia = uploadProductMediaForCrop;
 
 export async function deleteProductMediaForCrop(id: string, mediaId: string): Promise<void> {
-  await deleteProductMedia(id, mediaId);
+  await deleteProductMediaApi(id, mediaId);
 }
 
 /** @deprecated Use deleteProductMediaForCrop */
