@@ -97,7 +97,7 @@ export default function WithdrawProfitsPage() {
             <div className="flex items-center justify-between border-b border-[#f0ebde]/55 pb-4">
               <span className="text-sm font-bold text-[#111111]">الرصيد القابل للسحب</span>
               <span className="text-lg font-bold text-[#265C38]">
-                {wallet?.withdrawableBalance.toLocaleString() ?? '0'} ريال سعودي
+                {(wallet?.withdrawableBalance ?? 0).toLocaleString()} ريال سعودي
               </span>
             </div>
 

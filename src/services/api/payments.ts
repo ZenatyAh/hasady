@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from '@/lib/api-client';
+import { unwrapListItems } from '@/lib/api-list';
 
 export interface PaymentRecord {
   id: string;
@@ -16,7 +17,8 @@ export interface InitiatePaymentResult {
 }
 
 export async function getBuyerPayments(): Promise<PaymentRecord[]> {
-  return apiGet('/payments');
+  const data = await apiGet<unknown>('/payments');
+  return unwrapListItems<PaymentRecord>(data);
 }
 
 export async function getPaymentDetail(id: string): Promise<PaymentRecord> {

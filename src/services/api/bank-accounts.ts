@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api-client';
+import { unwrapListItems } from '@/lib/api-list';
 
 export interface BankAccount {
   id: string;
@@ -11,7 +12,8 @@ export interface BankAccount {
 }
 
 export async function getBankAccounts(): Promise<BankAccount[]> {
-  return apiGet('/bank-accounts');
+  const data = await apiGet<unknown>('/bank-accounts');
+  return unwrapListItems<BankAccount>(data);
 }
 
 export async function getDefaultBankAccount(): Promise<BankAccount | null> {

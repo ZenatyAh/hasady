@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { productSchema } from '@/lib/api-contracts/products';
+import { productSchema, saleMethodSchema } from '@/lib/api-contracts/products';
 
 export const orderStatusSchema = z.enum([
   'PENDING',
@@ -26,7 +26,7 @@ export const orderBuyerSchema = z.object({
 export const orderSchema = z.object({
   id: z.string(),
   productId: z.string(),
-  saleMethod: z.enum(['FIXED', 'AUCTION']),
+  saleMethod: saleMethodSchema,
   offeredPrice: z.union([z.number(), z.string()]),
   quantity: z.union([z.number(), z.string()]).optional(),
   finalPrice: z.union([z.number(), z.string()]).nullable().optional(),

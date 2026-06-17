@@ -1,6 +1,7 @@
 // src/services/api/farms.ts
 
 import { apiGet, apiPost, apiPut, apiUpload } from '@/lib/api-client';
+import { unwrapListItems } from '@/lib/api-list';
 
 export interface Farm {
   id: string;
@@ -15,7 +16,8 @@ export interface Farm {
 }
 
 export async function getFarms(): Promise<Farm[]> {
-  return apiGet('/farms');
+  const data = await apiGet<unknown>('/farms');
+  return unwrapListItems<Farm>(data);
 }
 
 export async function getFarmById(id: string): Promise<Farm | null> {

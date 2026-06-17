@@ -94,7 +94,7 @@ export default function WalletPage() {
                     </span>
                     <div className="flex items-baseline justify-center">
                       <span className="text-4xl font-extrabold text-[#265C38] tracking-tight">
-                        {wallet?.balance.toLocaleString() ?? '0'}
+                        {(wallet?.balance ?? 0).toLocaleString()}
                       </span>
                       <span className="text-sm font-bold text-gray-500 mr-1.5">ريال سعودي</span>
                     </div>
@@ -105,13 +105,13 @@ export default function WalletPage() {
                     <div className="flex items-center justify-between text-sm py-1.5">
                       <span className="text-gray-400 font-medium">الرصيد المعلق</span>
                       <span className="font-semibold text-gray-700">
-                        {wallet?.pendingBalance.toLocaleString() ?? '0'} ريال سعودي
+                        {(wallet?.pendingBalance ?? 0).toLocaleString()} ريال سعودي
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm py-1.5">
                       <span className="text-gray-400 font-medium">الرصيد القابل للسحب</span>
                       <span className="font-semibold text-[#265C38]">
-                        {wallet?.withdrawableBalance.toLocaleString() ?? '0'} ريال سعودي
+                        {(wallet?.withdrawableBalance ?? 0).toLocaleString()} ريال سعودي
                       </span>
                     </div>
                   </div>
