@@ -2,8 +2,13 @@ import type { ZodType } from 'zod';
 import { ApiError } from '@/lib/api-errors';
 import { getAccessToken, useAuthStore } from '@/lib/store';
 
+const DEFAULT_PRODUCTION_API_URL = 'https://mahaseel-production.up.railway.app/api/v1';
+
 function getApiBase(): string {
-  return (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+  const fromEnv = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+  if (fromEnv) return fromEnv;
+  if (process.env.NODE_ENV === 'production') return DEFAULT_PRODUCTION_API_URL;
+  return '';
 }
 
 export { getApiBase };

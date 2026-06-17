@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/lib/store';
+import { getApiBase } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -69,7 +70,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Strip trailing /api/v1 or trailing slashes for standard socket.io connections
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const apiUrl = getApiBase() || 'http://localhost:3000';
     const socketUrl = apiUrl.replace(/\/api\/v1\/?$/, '');
 
     const socketInstance = io(socketUrl, {

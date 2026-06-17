@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, buildQuery } from '@/lib/api-client';
+import { apiGet, apiPatch, buildQuery, getApiBase } from '@/lib/api-client';
 import { getAccessToken } from '@/lib/store';
 import {
   notificationSchema,
@@ -9,10 +9,6 @@ import {
   type NotificationStreamEvent,
   type PaginatedNotifications,
 } from '@/lib/api-contracts/notifications';
-
-function getApiBase(): string {
-  return (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
-}
 
 function localizeNotification(item: Notification): Notification {
   return {
