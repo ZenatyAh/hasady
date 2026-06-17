@@ -10,8 +10,7 @@ import { getErrorMessage } from '@/lib/api-errors';
 
 export default function ReviewsHistoryPage() {
   const { isReady } = useAuthGuard();
-  const token = useAuthStore((state) => state.token);
-  const { data: reviews = [], isLoading, error } = useGivenRatings(token);
+  const { data: reviews = [], isLoading, error } = useGivenRatings();
 
   if (!isReady) {
     return null;

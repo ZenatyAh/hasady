@@ -6,8 +6,7 @@ import { useGivenRatings } from '@/hooks/queries';
 import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerReviewsPage() {
-  const token = useAuthStore((state) => state.token);
-  const { data: ratings = [], isLoading, error } = useGivenRatings(token);
+  const { data: ratings = [], isLoading, error } = useGivenRatings();
 
   return (
     <div className="space-y-6">

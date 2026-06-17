@@ -9,7 +9,6 @@ import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerProfilePasswordPage() {
   const router = useRouter();
-  const token = useAuthStore((state) => state.token);
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,7 +32,7 @@ export default function CustomerProfilePasswordPage() {
 
     setIsSubmitting(true);
     try {
-      await setUserPassword(newPassword, token);
+      await setUserPassword(newPassword);
       setSuccess(true);
       setTimeout(() => router.push('/customer/profile'), 1000);
     } catch (err) {

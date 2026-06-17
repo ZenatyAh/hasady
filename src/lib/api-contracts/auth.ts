@@ -1,18 +1,7 @@
 import { z } from 'zod';
+import { userSchema } from '@/lib/api-contracts/users';
 
-export const userSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  phone: z.string().nullable().optional(),
-  fullName: z.string().nullable().optional(),
-  role: z.enum(['BUYER', 'MERCHANT', 'ADMIN']),
-  profileImage: z.string().nullable().optional(),
-  bio: z.string().nullable().optional(),
-  ratingAvg: z.union([z.number(), z.string()]).optional(),
-  ratingCount: z.number().optional(),
-  isActive: z.boolean().optional(),
-  isVerified: z.boolean().optional(),
-});
+export { userSchema, type ApiUser } from '@/lib/api-contracts/users';
 
 export const authTokensSchema = z.object({
   accessToken: z.string(),
@@ -33,5 +22,4 @@ export const messageResponseSchema = z.object({
   message: z.string(),
 });
 
-export type ApiUser = z.infer<typeof userSchema>;
 export type AuthTokens = z.infer<typeof authTokensSchema>;

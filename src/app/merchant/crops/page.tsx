@@ -28,7 +28,7 @@ export default function CropsListPage() {
   useEffect(() => {
     if (!isReady) return;
 
-    getCrops(token)
+    getCrops()
       .then((data) => {
         setCrops(data);
       })
@@ -49,7 +49,7 @@ export default function CropsListPage() {
     if (!cropToDelete || !token) return;
     try {
       setDeleteLoading(true);
-      await deleteCrop(cropToDelete, token);
+      await deleteCrop(cropToDelete);
       // Remove from state
       setCrops((prev) => prev.filter((c) => c.id !== cropToDelete));
       setCropToDelete(null);
@@ -65,9 +65,9 @@ export default function CropsListPage() {
     if (!token) return;
     try {
       setLoading(true);
-      await relistCrop(id, token);
+      await relistCrop(id);
       // Refresh crops list
-      const data = await getCrops(token);
+      const data = await getCrops();
       setCrops(data);
       // Move to AVAILABLE tab so user can see it
       setActiveTab('AVAILABLE');

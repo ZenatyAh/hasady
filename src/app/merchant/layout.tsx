@@ -8,16 +8,15 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthGuard } from '@/lib/use-auth-guard';
 import { useAuthStore } from '@/lib/store';
+import { logout } from '@/lib/auth/logout';
 
 export default function MerchantLayout({ children }: { children: React.ReactNode }) {
   const { isReady } = useAuthGuard({ requiredRole: 'MERCHANT' });
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
-  const clearAuthSession = useAuthStore((state) => state.clearAuthSession);
-
-  const handleLogout = () => {
-    clearAuthSession();
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   };
 

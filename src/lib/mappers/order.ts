@@ -1,23 +1,5 @@
 import type { PurchaseOrder } from '@/services/api/orders';
-import type { ApiProduct } from '@/lib/mappers/product';
-
-export type ApiOrder = {
-  id: string;
-  productId: string;
-  saleMethod: 'FIXED' | 'AUCTION';
-  offeredPrice: number | string;
-  finalPrice?: number | string | null;
-  status: string;
-  createdAt: string;
-  rejectionReason?: string | null;
-  product?: ApiProduct | null;
-  buyer?: {
-    id: string;
-    fullName?: string | null;
-    phone?: string | null;
-    ratingAvg?: number | string;
-  } | null;
-};
+import type { Order } from '@/lib/api-contracts/orders';
 
 function toNumber(value: number | string | null | undefined, fallback = 0): number {
   if (value === null || value === undefined) return fallback;
@@ -35,7 +17,7 @@ function mapOrderStatus(status: string): PurchaseOrder['status'] {
   return 'PENDING';
 }
 
-export function orderToPurchaseOrder(order: ApiOrder): PurchaseOrder {
+export function orderToPurchaseOrder(order: Order): PurchaseOrder {
   const product = order.product;
   const image =
     product?.media && product.media.length > 0
@@ -59,5 +41,9 @@ export function orderToPurchaseOrder(order: ApiOrder): PurchaseOrder {
     image,
     productId: order.productId,
     rejectionReason: order.rejectionReason ?? undefined,
+    deliveryStatus: order.deliveryStatus ?? undefined,
   };
 }
+
+/** @deprecated Use Order from api-contracts/orders */
+export type ApiOrder = Order;

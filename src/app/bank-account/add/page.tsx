@@ -40,7 +40,6 @@ type FormErrors = {
 
 export default function AddBankAccountPage() {
   const router = useRouter();
-  const token = useAuthStore((state) => state.token);
 
   const [bankName, setBankName] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
@@ -66,14 +65,11 @@ export default function AddBankAccountPage() {
 
     try {
       setLoading(true);
-      await createBankAccount(
-        {
-          bankName: bankName.trim(),
-          accountHolderName: accountHolderName.trim(),
-          accountNumber,
-        },
-        token
-      );
+      await createBankAccount({
+        bankName: bankName.trim(),
+        accountHolderName: accountHolderName.trim(),
+        accountNumber,
+      });
 
       /**
        * ⚡ Backend integration point:

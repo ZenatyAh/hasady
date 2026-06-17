@@ -23,8 +23,7 @@ function RateMerchantForm() {
   const orderId = searchParams.get('orderId') || '';
 
   const { isReady } = useAuthGuard();
-  const token = useAuthStore((state) => state.token);
-  const createRating = useCreateRating(token);
+  const createRating = useCreateRating();
 
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);

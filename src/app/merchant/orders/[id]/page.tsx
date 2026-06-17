@@ -29,7 +29,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
   useEffect(() => {
     if (!isReady) return;
 
-    getOrderDetail(id, token)
+    getOrderDetail(id)
       .then((data) => {
         setOrder(data);
       })
@@ -45,7 +45,7 @@ export default function OrderDetailsPage({ params }: PageProps) {
     if (!token || !order) return;
     setSubmitting(true);
     try {
-      await acceptOrder(order.id, token);
+      await acceptOrder(order.id);
       setIsModalOpen(false);
       router.push('/merchant/orders');
     } catch (err) {

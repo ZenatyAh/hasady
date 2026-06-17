@@ -21,7 +21,7 @@ export default function PurchaseRequestsPage() {
   useEffect(() => {
     if (!isReady) return;
 
-    getIncomingOrders(token)
+    getIncomingOrders()
       .then((data) => {
         setOrders(data);
       })

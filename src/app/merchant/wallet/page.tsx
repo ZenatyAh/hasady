@@ -25,7 +25,7 @@ export default function WalletPage() {
   useEffect(() => {
     if (!isReady) return;
 
-    Promise.all([getWalletSummary(token), getWithdrawalRequests(token)])
+    Promise.all([getWalletSummary(), getWithdrawalRequests()])
       .then(([walletData, requestsData]) => {
         setWallet(walletData);
         setRequests(requestsData);

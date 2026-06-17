@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/lib/store';
+import { queryKeys } from '@/lib/query-keys';
 import { useQueryClient } from '@tanstack/react-query';
 
 type SocketContextType = {
@@ -37,8 +38,8 @@ function GlobalSocketSync({
 
     // Core systemic invalidations
     socket.on('notification_received', () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['unread_notifications_count'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
     });
 
     socket.on('order_updated', () => {

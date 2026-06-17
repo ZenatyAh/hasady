@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { ApiError } from '@/lib/api-errors';
+import { useAuthStore } from '@/lib/store';
 
 import { signUp, verifyEmail, signIn } from '../auth';
 import { getCategories } from '../categories';
@@ -54,7 +55,7 @@ describe('Backend Integration Tests', () => {
 
     it('should connect to GET /market', async () => {
       await expectConnected(browseMarket());
-    });
+    }, 15_000);
   });
 
   describe('2. Authentication Flow', () => {
@@ -101,48 +102,63 @@ describe('Backend Integration Tests', () => {
   });
 
   describe('3. Authenticated Endpoints', () => {
+    beforeAll(() => {
+      if (authToken) {
+        useAuthStore.getState().setAuthSession(
+          { accessToken: authToken, refreshToken: 'test-refresh' },
+          {
+            id: 'test-user',
+            name: 'Test User',
+            email: testEmail,
+            phone: testPhone,
+            role: 'BUYER',
+          }
+        );
+      }
+    });
+
     it('should connect to GET /users/me', async () => {
-      await expectConnected(getMe(authToken));
+      await expectConnected(getMe());
     });
 
     it('should connect to GET /farms', async () => {
-      await expectConnected(getFarms(authToken));
+      await expectConnected(getFarms());
     });
 
     it('should connect to GET /products (crops)', async () => {
-      await expectConnected(getCrops(authToken));
+      await expectConnected(getCrops());
     });
 
     it('should connect to GET /orders/my', async () => {
-      await expectConnected(getMyOrders(authToken));
+      await expectConnected(getMyOrders());
     });
 
     it('should connect to GET /orders/incoming', async () => {
-      await expectConnected(getIncomingOrders(authToken));
+      await expectConnected(getIncomingOrders());
     });
 
     it('should connect to GET /wallet', async () => {
-      await expectConnected(getWalletSummary(authToken));
+      await expectConnected(getWalletSummary());
     });
 
     it('should connect to GET /bank-accounts', async () => {
-      await expectConnected(getBankAccounts(authToken));
+      await expectConnected(getBankAccounts());
     });
 
     it('should connect to GET /notifications', async () => {
-      await expectConnected(getNotifications(1, 20, authToken));
+      await expectConnected(getNotifications(1, 20));
     });
 
     it('should connect to GET /payments', async () => {
-      await expectConnected(getBuyerPayments(authToken));
+      await expectConnected(getBuyerPayments());
     });
 
     it('should connect to GET /ratings/me', async () => {
-      await expectConnected(getReceivedRatings(1, 20, authToken));
+      await expectConnected(getReceivedRatings(1, 20));
     });
 
     it('should connect to GET /ratings/given', async () => {
-      await expectConnected(getGivenRatings(1, 20, authToken));
+      await expectConnected(getGivenRatings(1, 20));
     });
   });
 });

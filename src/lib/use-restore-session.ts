@@ -12,28 +12,51 @@ export function useRestoreSession() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
   const refreshToken = useAuthStore((state) => state.refreshToken);
+  const sessionStatus = useAuthStore((state) => state.sessionStatus);
   const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const clearAuthSession = useAuthStore((state) => state.clearAuthSession);
+  const setSessionStatus = useAuthStore((state) => state.setSessionStatus);
 
   useEffect(() => {
-    if (!hasHydrated || !accessToken) return;
-    if (user) return;
+    if (!hasHydrated) return;
+
+    if (!accessToken) {
+      setSessionStatus('ready');
+      return;
+    }
+
+    if (user) {
+      setSessionStatus('ready');
+      return;
+    }
 
     let cancelled = false;
+    setSessionStatus('restoring');
 
-    getMe(accessToken)
+    getMe()
       .then((apiUser) => {
         if (cancelled) return;
         setAuthSession({ accessToken, refreshToken: refreshToken ?? '' }, apiUserToUser(apiUser));
       })
       .catch(() => {
-        if (!cancelled) clearAuthSession();
+        if (cancelled) return;
+        clearAuthSession();
+        router.replace('/login');
       });
 
     return () => {
       cancelled = true;
     };
-  }, [hasHydrated, accessToken, user, refreshToken, setAuthSession, clearAuthSession]);
+  }, [
+    hasHydrated,
+    accessToken,
+    user,
+    refreshToken,
+    setAuthSession,
+    clearAuthSession,
+    setSessionStatus,
+    router,
+  ]);
 
   useEffect(() => {
     const onUnauthorized = () => {
@@ -44,4 +67,6 @@ export function useRestoreSession() {
     window.addEventListener('mahaseel:unauthorized', onUnauthorized);
     return () => window.removeEventListener('mahaseel:unauthorized', onUnauthorized);
   }, [clearAuthSession, router]);
+
+  return { sessionStatus };
 }

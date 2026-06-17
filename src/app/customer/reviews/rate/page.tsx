@@ -11,8 +11,7 @@ function RateMerchantFormContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId') || '';
 
-  const token = useAuthStore((state) => state.token);
-  const createRating = useCreateRating(token);
+  const createRating = useCreateRating();
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');

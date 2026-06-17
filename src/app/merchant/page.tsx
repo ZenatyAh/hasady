@@ -33,7 +33,7 @@ export default function MerchantDashboard() {
   useEffect(() => {
     if (!isReady) return;
 
-    getWalletSummary(token)
+    getWalletSummary()
       .then((data) => {
         setWallet(data);
       })

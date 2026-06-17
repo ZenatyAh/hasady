@@ -1,30 +1,22 @@
 // src/services/api/auth.ts
 
 import { apiPost } from '@/lib/api-client';
-import { messageResponseSchema } from '@/lib/api-contracts/auth';
+import {
+  messageResponseSchema,
+  signInResponseSchema,
+  verifyEmailResponseSchema,
+} from '@/lib/api-contracts/auth';
 import { apiUserToUser } from '@/lib/mappers/user';
-
-const MOCK_DELAY_MS = 1500;
-
-function mockDelay<T>(fn: () => T | Promise<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        resolve(fn());
-      } catch (err) {
-        reject(err);
-      }
-    }, MOCK_DELAY_MS);
-  });
-}
+import type { Role } from '@/lib/api-contracts/users';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
-  role?: 'BUYER' | 'MERCHANT';
+  role?: Role;
   profileImage?: string;
+  bio?: string;
 }
 
 export interface AuthResult {
@@ -71,78 +63,38 @@ function mapAuthResponse(data: {
   };
 }
 
+const publicAuthOptions = { public: true, skipAuthRedirect: true } as const;
+
 export async function signUp(credentials: SignUpCredentials): Promise<{ message: string }> {
-  return apiPost(
-    '/auth/signup',
-    credentials,
-    () =>
-      mockDelay(() => ({
-        message: 'تم التسجيل بنجاح. تحقق من بريدك الإلكتروني لتفعيل الحساب.',
-      })),
-    { schema: messageResponseSchema }
-  );
+  return apiPost('/auth/signup', credentials, {
+    schema: messageResponseSchema,
+    ...publicAuthOptions,
+  });
 }
 
 export async function signIn(credentials: SignInCredentials): Promise<AuthResult> {
-  const data = await apiPost(
-    '/auth/signin',
-    credentials,
-    () =>
-      mockDelay(() => ({
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        message: 'تم تسجيل الدخول بنجاح',
-        user: {
-          id: '1',
-          email: credentials.email,
-          phone: '0597450057',
-          fullName: 'محمد علي إسماعيل',
-          role: 'BUYER' as const,
-        },
-      })),
-    { skipAuthRedirect: true }
-  );
+  const data = await apiPost('/auth/signin', credentials, {
+    schema: signInResponseSchema,
+    ...publicAuthOptions,
+  });
 
-  return mapAuthResponse(data as Parameters<typeof mapAuthResponse>[0]);
+  return mapAuthResponse(data);
 }
 
 export async function verifyEmail(credentials: VerifyEmailCredentials): Promise<AuthResult> {
-  const data = await apiPost(
-    '/auth/verify-email',
-    credentials,
-    () =>
-      mockDelay(() => {
-        if (credentials.code !== '123456' && credentials.code !== '531000') {
-          throw new Error('رمز التحقق غير صحيح');
-        }
-        return {
-          accessToken: 'mock-verified-access-token',
-          refreshToken: 'mock-verified-refresh-token',
-          message: 'تم تفعيل الحساب بنجاح',
-          user: {
-            id: '1',
-            email: credentials.email,
-            phone: '0597450057',
-            fullName: 'مستخدم محاصيل',
-            role: 'BUYER' as const,
-          },
-        };
-      }),
-    { skipAuthRedirect: true }
-  );
+  const data = await apiPost('/auth/verify-email', credentials, {
+    schema: verifyEmailResponseSchema,
+    ...publicAuthOptions,
+  });
 
-  return mapAuthResponse(data as Parameters<typeof mapAuthResponse>[0]);
+  return mapAuthResponse(data);
 }
 
 export async function resendVerification(email: string): Promise<{ message: string }> {
   return apiPost(
     '/auth/resend-verification',
     { email },
-    () =>
-      mockDelay(() => ({
-        message: 'إذا كان الحساب موجوداً وغير مفعّل، تم إرسال رمز جديد.',
-      })),
-    { schema: messageResponseSchema, skipAuthRedirect: true }
+    { schema: messageResponseSchema, ...publicAuthOptions }
   );
 }
 
@@ -150,14 +102,7 @@ export async function sendResetCode(email: string): Promise<{ message: string }>
   return apiPost(
     '/auth/reset/send-code',
     { email },
-    () =>
-      mockDelay(() => {
-        if (email === 'missing@example.com') {
-          throw new Error('البريد الإلكتروني غير مسجل في النظام');
-        }
-        return { message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني' };
-      }),
-    { schema: messageResponseSchema, skipAuthRedirect: true }
+    { schema: messageResponseSchema, ...publicAuthOptions }
   );
 }
 
@@ -165,56 +110,31 @@ export async function verifyResetCode(email: string, code: string): Promise<{ me
   return apiPost(
     '/auth/reset/verify',
     { email, code },
-    () =>
-      mockDelay(() => {
-        if (code !== '123456') throw new Error('رمز التحقق غير صحيح');
-        return { message: 'تم التحقق من الرمز بنجاح' };
-      }),
-    { schema: messageResponseSchema, skipAuthRedirect: true }
+    { schema: messageResponseSchema, ...publicAuthOptions }
   );
 }
 
 export async function changePassword(
   credentials: ResetPasswordCredentials
 ): Promise<{ message: string }> {
-  return apiPost(
-    '/auth/reset/change-password',
-    credentials,
-    () =>
-      mockDelay(() => ({
-        message: 'تم تغيير كلمة المرور بنجاح',
-      })),
-    { schema: messageResponseSchema, skipAuthRedirect: true }
-  );
+  return apiPost('/auth/reset/change-password', credentials, {
+    schema: messageResponseSchema,
+    ...publicAuthOptions,
+  });
 }
 
 export async function refreshSession(refreshToken: string): Promise<AuthResult> {
   const data = await apiPost(
     '/auth/refresh',
     { refreshToken },
-    () =>
-      mockDelay(() => ({
-        accessToken: 'mock-refreshed-access-token',
-        refreshToken: 'mock-refreshed-refresh-token',
-        user: {
-          id: '1',
-          email: 'demo@mahaseel.test',
-          phone: '0597450057',
-          fullName: 'مستخدم محاصيل',
-          role: 'BUYER' as const,
-        },
-      })),
-    { skipAuthRedirect: true }
+    { schema: signInResponseSchema, ...publicAuthOptions }
   );
 
-  return mapAuthResponse(data as Parameters<typeof mapAuthResponse>[0]);
+  return mapAuthResponse(data);
 }
 
-export async function logout(token?: string | null): Promise<{ message: string }> {
-  return apiPost('/auth/logout', {}, () => mockDelay(() => ({ message: 'تم تسجيل الخروج' })), {
-    token,
-    schema: messageResponseSchema,
-  });
+export async function logout(): Promise<{ message: string }> {
+  return apiPost('/auth/logout', {}, { schema: messageResponseSchema });
 }
 
 // Backward-compatible aliases used by existing pages
@@ -269,15 +189,15 @@ export { createBankAccount as addBankAccount } from '@/services/api/bank-account
 
 export type LoginCredentials = SignInCredentials & {
   phone?: string;
-  role?: 'BUYER' | 'MERCHANT';
+  role?: Role;
 };
 export type RegisterCredentials = SignUpCredentials & {
   name?: string;
-  role?: 'BUYER' | 'MERCHANT';
+  role?: Role;
 };
 export type VerifyOtpCredentials = VerifyEmailCredentials & {
   phone?: string;
-  role?: 'BUYER' | 'MERCHANT';
+  role?: Role;
 };
 export type LoginResponse = AuthResult & { token: string };
 export type RegisterResponse = { message: string };

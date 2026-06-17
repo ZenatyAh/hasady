@@ -6,13 +6,8 @@ import { useWalletSummary, useBuyerPayments } from '@/hooks/queries';
 import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerWalletPage() {
-  const token = useAuthStore((state) => state.token);
-  const { data: wallet, isLoading: walletLoading, error: walletError } = useWalletSummary(token);
-  const {
-    data: payments,
-    isLoading: paymentsLoading,
-    error: paymentsError,
-  } = useBuyerPayments(token);
+  const { data: wallet, isLoading: walletLoading, error: walletError } = useWalletSummary();
+  const { data: payments, isLoading: paymentsLoading, error: paymentsError } = useBuyerPayments();
 
   const loading = walletLoading || paymentsLoading;
   const error = walletError || paymentsError;

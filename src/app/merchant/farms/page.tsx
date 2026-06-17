@@ -21,7 +21,7 @@ export default function FarmsListPage() {
   useEffect(() => {
     if (!isReady) return;
 
-    getFarms(token)
+    getFarms()
       .then((data) => {
         setFarms(data);
       })

@@ -1,21 +1,18 @@
 // src/services/api/orders.ts
 
 import { apiDelete, apiGet, apiPost, apiPut } from '@/lib/api-client';
-import { orderToPurchaseOrder, type ApiOrder } from '@/lib/mappers/order';
-
-const MOCK_DELAY_MS = 600;
-
-function mockDelay<T>(fn: () => T | Promise<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        resolve(fn());
-      } catch (err) {
-        reject(err);
-      }
-    }, MOCK_DELAY_MS);
-  });
-}
+import {
+  orderSchema,
+  ordersListSchema,
+  placeOrderPayloadSchema,
+  rejectOrderPayloadSchema,
+  updateOrderStatusPayloadSchema,
+  type Order,
+  type PlaceOrderPayload,
+  type RejectOrderPayload,
+  type UpdateOrderStatusPayload,
+} from '@/lib/api-contracts/orders';
+import { orderToPurchaseOrder } from '@/lib/mappers/order';
 
 export interface PurchaseOrder {
   id: string;
@@ -37,260 +34,91 @@ export interface PurchaseOrder {
   deliveryStatus?: string | null;
 }
 
-function isApiOrder(value: unknown): value is ApiOrder {
-  return Boolean(value && typeof value === 'object' && 'saleMethod' in (value as ApiOrder));
+function normalizeOrdersList(data: unknown): Order[] {
+  const parsed = ordersListSchema.parse(data);
+  if (Array.isArray(parsed)) return parsed;
+  if ('items' in parsed && Array.isArray(parsed.items)) return parsed.items;
+  if ('data' in parsed && Array.isArray(parsed.data)) return parsed.data;
+  return [];
 }
 
-const DEFAULT_ORDERS: PurchaseOrder[] = [
-  {
-    id: 'ord-1',
-    type: 'fixed',
-    cropName: 'خيار بلدي',
-    description: 'خيار طازج مزروع في بيوت بلاستيكية، جاهز للاستهلاك، بجودة ممتازة',
-    buyerName: 'محمد علي إسماعيل',
-    buyerPhone: '+966528787283',
-    buyerRating: 4,
-    buyerId: '2308920932093',
-    offeredPrice: 4900,
-    currency: 'ريال سعودي',
-    status: 'PENDING',
-    backendStatus: 'PENDING',
-    createdAt: '14-09-2025',
-    image: '/images/onboard4.svg',
-    productId: 'crop-1',
-  },
-];
-
-function getStoredOrders(): PurchaseOrder[] {
-  if (typeof window === 'undefined') return DEFAULT_ORDERS;
-  const stored = sessionStorage.getItem('hasady-purchase-orders');
-  if (stored) {
-    try {
-      return JSON.parse(stored) as PurchaseOrder[];
-    } catch {
-      return DEFAULT_ORDERS;
-    }
-  }
-  sessionStorage.setItem('hasady-purchase-orders', JSON.stringify(DEFAULT_ORDERS));
-  return DEFAULT_ORDERS;
+function toPurchaseOrder(data: Order): PurchaseOrder {
+  return orderToPurchaseOrder(data);
 }
 
-function saveStoredOrders(orders: PurchaseOrder[]): void {
-  if (typeof window !== 'undefined') {
-    sessionStorage.setItem('hasady-purchase-orders', JSON.stringify(orders));
-  }
-}
+// ─── BUYER routes ───────────────────────────────────────────────────────────
 
-function mapOrders(orders: ApiOrder[]): PurchaseOrder[] {
-  return orders.map(orderToPurchaseOrder);
-}
-
-function mapOrder(order: ApiOrder): PurchaseOrder {
-  return orderToPurchaseOrder(order);
-}
-
-function toPurchaseOrder(data: unknown): PurchaseOrder {
-  if (data && typeof data === 'object' && 'cropName' in data) {
-    return data as PurchaseOrder;
-  }
-  if (isApiOrder(data)) {
-    return mapOrder(data);
-  }
-  throw new Error('استجابة الطلب غير صالحة');
-}
-
-function normalizeOrders(data: unknown): ApiOrder[] {
-  if (!Array.isArray(data) || data.length === 0) return [];
-  if (isApiOrder(data[0])) return data as ApiOrder[];
-  return (data as PurchaseOrder[]).map(
-    (order) =>
-      ({
-        id: order.id,
-        productId: order.productId ?? order.id,
-        saleMethod: order.type === 'auction' ? 'AUCTION' : 'FIXED',
-        offeredPrice: order.offeredPrice,
-        status: order.backendStatus ?? order.status,
-        createdAt: order.createdAt,
-        product: null,
-        buyer: { id: order.buyerId, fullName: order.buyerName, phone: order.buyerPhone },
-      }) as ApiOrder
-  );
-}
-
-export async function getMyOrders(token?: string | null): Promise<PurchaseOrder[]> {
-  const data = await apiGet('/orders/my', () => mockDelay(() => getStoredOrders()), { token });
-  return mapOrders(normalizeOrders(data));
-}
-
-export async function getIncomingOrders(token?: string | null): Promise<PurchaseOrder[]> {
-  const data = await apiGet('/orders/incoming', () => mockDelay(() => getStoredOrders()), {
-    token,
-  });
-  return mapOrders(normalizeOrders(data));
-}
-
-export async function getOrderDetail(
-  id: string,
-  token?: string | null
-): Promise<PurchaseOrder | null> {
-  const data = await apiGet(
-    `/orders/${id}`,
-    () =>
-      mockDelay(() => {
-        const orders = getStoredOrders();
-        return orders.find((o) => o.id === id) ?? null;
-      }),
-    { token }
-  );
-
-  if (!data) return null;
+/** POST /orders — place a fixed-price purchase request */
+export async function placeOrder(payload: PlaceOrderPayload): Promise<PurchaseOrder> {
+  const body = placeOrderPayloadSchema.parse(payload);
+  const data = await apiPost('/orders', body, { schema: orderSchema });
   return toPurchaseOrder(data);
 }
 
-export async function placeOrder(
-  payload: { productId: string; offeredPrice: number; quantity: number; notes?: string },
-  token?: string | null
-): Promise<PurchaseOrder> {
-  const data = await apiPost(
-    '/orders',
-    payload,
-    () =>
-      mockDelay(() => {
-        const orders = getStoredOrders();
-        const newOrder: PurchaseOrder = {
-          id: `ord-${Date.now()}`,
-          type: 'fixed',
-          cropName: 'محصول جديد',
-          description: payload.notes ?? '',
-          buyerName: 'مشتري',
-          buyerPhone: '',
-          buyerRating: 0,
-          buyerId: 'buyer-1',
-          offeredPrice: payload.offeredPrice,
-          currency: 'ريال سعودي',
-          status: 'PENDING',
-          backendStatus: 'PENDING',
-          createdAt: new Date().toLocaleDateString('ar-SA'),
-          image: '/images/placeholder-crop.png',
-          productId: payload.productId,
-        };
-        saveStoredOrders([newOrder, ...orders]);
-        return newOrder;
-      }),
-    { token }
-  );
+/** GET /orders/my */
+export async function getMyOrders(): Promise<PurchaseOrder[]> {
+  const data = await apiGet('/orders/my', { schema: ordersListSchema });
+  return normalizeOrdersList(data).map(toPurchaseOrder);
+}
 
+/** DELETE /orders/:id/cancel */
+export async function cancelOrder(id: string): Promise<PurchaseOrder> {
+  const data = await apiDelete(`/orders/${id}/cancel`, { schema: orderSchema });
   return toPurchaseOrder(data);
 }
 
-export async function cancelOrder(id: string, token?: string | null): Promise<PurchaseOrder> {
-  const data = await apiDelete(
-    `/orders/${id}/cancel`,
-    () =>
-      mockDelay(() => {
-        const orders = getStoredOrders();
-        const index = orders.findIndex((o) => o.id === id);
-        if (index === -1) throw new Error('الطلب غير موجود');
-        orders[index] = { ...orders[index], status: 'REJECTED', backendStatus: 'CANCELLED' };
-        saveStoredOrders(orders);
-        return orders[index];
-      }),
-    { token }
-  );
-
+/** PUT /orders/:id/confirm — confirm delivery completion */
+export async function confirmDelivery(id: string): Promise<PurchaseOrder> {
+  const data = await apiPut(`/orders/${id}/confirm`, {}, { schema: orderSchema });
   return toPurchaseOrder(data);
 }
 
-export async function confirmDelivery(id: string, token?: string | null): Promise<PurchaseOrder> {
-  const data = await apiPut(
-    `/orders/${id}/confirm`,
-    {},
-    () =>
-      mockDelay(() => {
-        const orders = getStoredOrders();
-        const index = orders.findIndex((o) => o.id === id);
-        if (index === -1) throw new Error('الطلب غير موجود');
-        orders[index] = { ...orders[index], status: 'ACCEPTED', backendStatus: 'COMPLETED' };
-        saveStoredOrders(orders);
-        return orders[index];
-      }),
-    { token }
-  );
+// ─── MERCHANT routes ────────────────────────────────────────────────────────
 
+/** GET /orders/incoming */
+export async function getIncomingOrders(): Promise<PurchaseOrder[]> {
+  const data = await apiGet('/orders/incoming', { schema: ordersListSchema });
+  return normalizeOrdersList(data).map(toPurchaseOrder);
+}
+
+/** PUT /orders/:id/accept */
+export async function acceptOrder(id: string): Promise<PurchaseOrder> {
+  const data = await apiPut(`/orders/${id}/accept`, {}, { schema: orderSchema });
   return toPurchaseOrder(data);
 }
 
-export async function acceptOrder(id: string, token?: string | null): Promise<PurchaseOrder> {
-  const data = await apiPut(
-    `/orders/${id}/accept`,
-    {},
-    () =>
-      mockDelay(() => {
-        const orders = getStoredOrders();
-        const index = orders.findIndex((o) => o.id === id);
-        if (index === -1) throw new Error('الطلب غير موجود');
-        orders[index] = {
-          ...orders[index],
-          status: 'ACCEPTED',
-          backendStatus: 'AWAITING_PAYMENT',
-        };
-        saveStoredOrders(orders);
-        return orders[index];
-      }),
-    { token }
-  );
-
+/** PUT /orders/:id/reject */
+export async function rejectOrder(id: string, payload: RejectOrderPayload): Promise<PurchaseOrder> {
+  const body = rejectOrderPayloadSchema.parse(payload);
+  const data = await apiPut(`/orders/${id}/reject`, body, { schema: orderSchema });
   return toPurchaseOrder(data);
 }
 
-export async function rejectOrder(
-  id: string,
-  reason: string,
-  token?: string | null
-): Promise<PurchaseOrder> {
-  const data = await apiPut(
-    `/orders/${id}/reject`,
-    { reason },
-    () =>
-      mockDelay(() => {
-        const orders = getStoredOrders();
-        const index = orders.findIndex((o) => o.id === id);
-        if (index === -1) throw new Error('الطلب غير موجود');
-        orders[index] = {
-          ...orders[index],
-          status: 'REJECTED',
-          backendStatus: 'REJECTED',
-          rejectionReason: reason,
-        };
-        saveStoredOrders(orders);
-        return orders[index];
-      }),
-    { token }
-  );
-
-  return toPurchaseOrder(data);
-}
-
+/** PUT /orders/:id/status */
 export async function updateOrderStatus(
   id: string,
-  status: string,
-  token?: string | null,
-  reason?: string
+  payload: UpdateOrderStatusPayload
 ): Promise<PurchaseOrder> {
-  const data = await apiPut(
-    `/orders/${id}/status`,
-    { status, reason },
-    () =>
-      mockDelay(() => {
-        const orders = getStoredOrders();
-        const index = orders.findIndex((o) => o.id === id);
-        if (index === -1) throw new Error('الطلب غير موجود');
-        orders[index] = { ...orders[index], deliveryStatus: status };
-        saveStoredOrders(orders);
-        return orders[index];
-      }),
-    { token }
-  );
-
+  const body = updateOrderStatusPayloadSchema.parse(payload);
+  const data = await apiPut(`/orders/${id}/status`, body, { schema: orderSchema });
   return toPurchaseOrder(data);
 }
+
+// ─── Shared ─────────────────────────────────────────────────────────────────
+
+/** GET /orders/:id */
+export async function getOrderDetail(id: string): Promise<PurchaseOrder | null> {
+  try {
+    const data = await apiGet(`/orders/${id}`, { schema: orderSchema });
+    return toPurchaseOrder(data);
+  } catch {
+    return null;
+  }
+}
+
+/** GET /orders/:id — raw API order (for advanced use) */
+export async function getOrderById(id: string): Promise<Order> {
+  return apiGet(`/orders/${id}`, { schema: orderSchema });
+}
+
+export type { Order, PlaceOrderPayload, RejectOrderPayload, UpdateOrderStatusPayload };

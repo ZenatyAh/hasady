@@ -10,7 +10,9 @@ type UseAuthGuardOptions = {
 };
 
 function getRoleHome(role: AuthRole | undefined) {
-  return role === 'BUYER' ? '/customer' : '/merchant';
+  if (role === 'BUYER') return '/customer';
+  if (role === 'ADMIN') return '/merchant';
+  return '/merchant';
 }
 
 export function useAuthGuard(options: UseAuthGuardOptions | string = {}) {
@@ -20,11 +22,16 @@ export function useAuthGuard(options: UseAuthGuardOptions | string = {}) {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const accessToken = useAuthStore((state) => state.accessToken);
   const user = useAuthStore((state) => state.user);
+  const sessionStatus = useAuthStore((state) => state.sessionStatus);
+  const isSessionReady = sessionStatus !== 'restoring';
   const isAuthenticated = Boolean(accessToken && user);
-  const hasRequiredRole = !requiredRole || user?.role === requiredRole;
+  const hasRequiredRole =
+    !requiredRole ||
+    user?.role === requiredRole ||
+    (requiredRole === 'MERCHANT' && user?.role === 'ADMIN');
 
   useEffect(() => {
-    if (!hasHydrated) return;
+    if (!hasHydrated || !isSessionReady) return;
 
     if (!isAuthenticated) {
       router.replace(redirectTo);
@@ -34,7 +41,15 @@ export function useAuthGuard(options: UseAuthGuardOptions | string = {}) {
     if (!hasRequiredRole) {
       router.replace(user?.role ? getRoleHome(user.role) : redirectTo);
     }
-  }, [hasHydrated, hasRequiredRole, isAuthenticated, redirectTo, router, user?.role]);
+  }, [
+    hasHydrated,
+    hasRequiredRole,
+    isAuthenticated,
+    isSessionReady,
+    redirectTo,
+    router,
+    user?.role,
+  ]);
 
   return {
     hasHydrated,
@@ -42,6 +57,7 @@ export function useAuthGuard(options: UseAuthGuardOptions | string = {}) {
     accessToken,
     user,
     isAuthenticated,
-    isReady: hasHydrated && isAuthenticated && hasRequiredRole,
+    isSessionReady,
+    isReady: hasHydrated && isSessionReady && isAuthenticated && hasRequiredRole,
   };
 }

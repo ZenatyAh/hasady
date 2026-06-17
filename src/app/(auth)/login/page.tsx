@@ -7,13 +7,22 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { login } from '@/services/api/auth';
+import { getMe } from '@/services/api/users';
+import { apiUserToUser } from '@/lib/mappers/user';
 import { useAuthStore } from '@/lib/store';
 import { useGuestGuard } from '@/lib/use-guest-guard';
+import type { Role } from '@/lib/api-contracts/users';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'البريد الإلكتروني مطلوب').email('البريد الإلكتروني غير صالح'),
   password: z.string().min(1, 'كلمة المرور مطلوبة'),
 });
+
+function getDashboardPath(role?: Role): string {
+  if (role === 'BUYER') return '/customer';
+  if (role === 'ADMIN') return '/merchant';
+  return '/merchant';
+}
 
 export default function LoginPage() {
   const { isReady } = useGuestGuard();
@@ -24,7 +33,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<'BUYER' | 'MERCHANT'>('BUYER');
 
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
@@ -55,10 +63,20 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const res = await login({ email, password, role });
+      const res = await login({ email, password });
       setAuthSession({ accessToken: res.accessToken, refreshToken: res.refreshToken }, res.user);
-      const target = res.user.role === 'MERCHANT' ? '/merchant' : '/customer';
-      router.push(target);
+
+      // Reconcile with server for freshest profile / role
+      try {
+        const me = await getMe();
+        setAuthSession(
+          { accessToken: res.accessToken, refreshToken: res.refreshToken },
+          apiUserToUser(me)
+        );
+        router.push(getDashboardPath(me.role));
+      } catch {
+        router.push(getDashboardPath(res.user.role));
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
       setErrors({ general: message });
@@ -79,32 +97,6 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
-            {/* Role Selector */}
-            <div className="flex rounded-lg bg-[#f0ebde] p-1">
-              <button
-                type="button"
-                onClick={() => setRole('BUYER')}
-                className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition ${
-                  role === 'BUYER'
-                    ? 'bg-[#265C38] text-white shadow-sm'
-                    : 'text-[#888888] hover:text-[#111111]'
-                }`}
-              >
-                مشتري (مستهلك)
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('MERCHANT')}
-                className={`flex-1 rounded-md py-2 text-center text-sm font-semibold transition ${
-                  role === 'MERCHANT'
-                    ? 'bg-[#265C38] text-white shadow-sm'
-                    : 'text-[#888888] hover:text-[#111111]'
-                }`}
-              >
-                تاجر (مزارع)
-              </button>
-            </div>
-
             <Input
               label="البريد الإلكتروني"
               type="email"
@@ -124,7 +116,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               error={errors.password}
-              dir="ltr" // Passwords are typed LTR
+              dir="ltr"
               className="text-right"
               onIconClick={() => setShowPassword(!showPassword)}
               icon={

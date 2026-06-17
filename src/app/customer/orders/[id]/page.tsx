@@ -26,7 +26,7 @@ export default function CustomerOrderDetailPage() {
     async function loadOrder() {
       try {
         setLoading(true);
-        const found = await getOrderDetail(id, token);
+        const found = await getOrderDetail(id);
         setOrder(found);
         if (found) {
           if (found.status === 'PENDING' || found.status === 'REJECTED') {
@@ -86,7 +86,7 @@ export default function CustomerOrderDetailPage() {
     setPaymentError('');
     setPaymentLoading(true);
     try {
-      const result = await initiatePayment(order.id, token);
+      const result = await initiatePayment(order.id);
       window.location.href = result.paymentUrl;
     } catch (err) {
       setPaymentError(getErrorMessage(err, 'تعذر بدء عملية الدفع'));

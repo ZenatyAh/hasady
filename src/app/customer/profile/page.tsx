@@ -6,20 +6,32 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/lib/store';
+import { useMe } from '@/hooks/queries';
+import { logout } from '@/lib/auth/logout';
+import { PageLoader } from '@/components/ui/PageLoader';
+
+function roleLabel(role?: string) {
+  if (role === 'MERCHANT') return 'حساب تاجر (مزارع)';
+  if (role === 'ADMIN') return 'حساب مسؤول';
+  return 'حساب مشتري (مستهلك)';
+}
 
 export default function CustomerProfilePage() {
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
-  const clearAuthSession = useAuthStore((state) => state.clearAuthSession);
+  const { data: me, isLoading, error } = useMe();
 
-  const handleLogout = () => {
-    clearAuthSession();
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   };
 
-  const displayName = user?.name || 'مشتري محاصيل';
-  const displayPhone = user?.phone || '0597450057';
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  const displayName = me?.fullName ?? me?.email ?? 'مشتري محاصيل';
+  const displayPhone = me?.phone ?? '';
+  const avatarSrc = me?.profileImage ?? '/images/avatar.png';
 
   const menuItems = [
     { label: '✏️ تعديل الحساب والبيانات الشخصية', href: '/customer/profile/edit' },
@@ -31,25 +43,37 @@ export default function CustomerProfilePage() {
 
   return (
     <div className="max-w-md mx-auto space-y-6 text-right">
-      {/* Profile Header Card */}
+      {error && (
+        <div className="rounded-xl bg-red-50 p-3 text-xs text-red-600 border border-red-100">
+          تعذر تحميل بيانات الحساب
+        </div>
+      )}
+
       <div className="bg-white border border-[#f0ebde]/75 rounded-[2.5rem] p-6 shadow-sm flex flex-col items-center text-center space-y-4">
         <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-[#265C38] bg-gray-100">
-          <Image src="/images/avatar.png" alt="Avatar" fill className="object-cover" />
+          <Image
+            src={avatarSrc}
+            alt="Avatar"
+            fill
+            className="object-cover"
+            unoptimized={Boolean(me?.profileImage)}
+          />
         </div>
         <div className="space-y-1">
           <h2 className="text-lg font-extrabold text-[#111111]">{displayName}</h2>
-          <span className="text-xs text-gray-400 font-mono" dir="ltr">
-            {displayPhone}
-          </span>
+          {displayPhone && (
+            <span className="text-xs text-gray-400 font-mono" dir="ltr">
+              {displayPhone}
+            </span>
+          )}
           <div className="mt-2">
             <span className="bg-[#e8f1eb] text-[#265C38] text-[10px] font-bold px-3 py-1 rounded-full border border-[#265C38]/10">
-              حساب مشتري (مستهلك)
+              {roleLabel(me?.role)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Menu List */}
       <div className="bg-white border border-[#f0ebde]/75 rounded-[2.5rem] p-6 shadow-sm divide-y divide-[#f0ebde]/45">
         {menuItems.map((item) => (
           <Link
@@ -63,7 +87,6 @@ export default function CustomerProfilePage() {
         ))}
       </div>
 
-      {/* Logout Button */}
       <button
         onClick={handleLogout}
         className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 text-sm font-bold py-4 rounded-2xl transition cursor-pointer"

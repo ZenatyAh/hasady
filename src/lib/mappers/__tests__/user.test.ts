@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { apiUserToUser } from '@/lib/mappers/user';
+import { roleSchema } from '@/lib/api-contracts/users';
+
+describe('roleSchema', () => {
+  it('accepts lowercase roles from the API', () => {
+    expect(roleSchema.parse('buyer')).toBe('BUYER');
+    expect(roleSchema.parse('merchant')).toBe('MERCHANT');
+    expect(roleSchema.parse('admin')).toBe('ADMIN');
+  });
+
+  it('defaults unknown roles to BUYER', () => {
+    expect(roleSchema.parse(null)).toBe('BUYER');
+    expect(roleSchema.parse('unknown')).toBe('BUYER');
+  });
+});
 
 describe('apiUserToUser', () => {
   it('maps merchant role and nullable fields', () => {
@@ -19,6 +33,7 @@ describe('apiUserToUser', () => {
       phone: '',
       role: 'MERCHANT',
       profileImage: 'https://cdn.test/avatar.png',
+      bio: undefined,
     });
   });
 

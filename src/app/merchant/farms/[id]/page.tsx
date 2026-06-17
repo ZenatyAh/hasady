@@ -30,7 +30,7 @@ export default function FarmDetailPage({ params }: FarmDetailPageProps) {
 
     const loadData = async () => {
       try {
-        const farmData = await getFarmById(id, token);
+        const farmData = await getFarmById(id);
         if (!farmData) {
           setError('المزرعة المطلوبة غير موجودة');
           setLoading(false);
@@ -40,7 +40,7 @@ export default function FarmDetailPage({ params }: FarmDetailPageProps) {
 
         // Fetch crops if the farm is approved
         if (farmData.status === 'APPROVED') {
-          const cropsData = await getCropsByFarm(id, token);
+          const cropsData = await getCropsByFarm(id);
           setCrops(cropsData);
         }
       } catch (err) {

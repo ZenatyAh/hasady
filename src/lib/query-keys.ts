@@ -1,5 +1,6 @@
 export const queryKeys = {
   me: ['users', 'me'] as const,
+  publicProfile: (userId: string) => ['users', 'profile', userId] as const,
   market: (filters?: Record<string, unknown>) => ['market', filters] as const,
   marketProduct: (id: string) => ['market', id] as const,
   crops: (status?: string) => ['products', status] as const,

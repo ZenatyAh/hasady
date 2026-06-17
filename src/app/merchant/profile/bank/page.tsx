@@ -19,7 +19,7 @@ export default function BankAccountInfoPage() {
   useEffect(() => {
     if (!isReady) return;
 
-    getDefaultBankAccount(token)
+    getDefaultBankAccount()
       .then((data) => {
         setBankAccount(data);
       })

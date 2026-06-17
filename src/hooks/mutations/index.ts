@@ -16,8 +16,11 @@ import { markAllNotificationsRead } from '@/services/api/notifications';
 import { updateMe, promoteToMerchant } from '@/services/api/users';
 import { createBankAccount } from '@/services/api/bank-accounts';
 import { queryKeys } from '@/lib/query-keys';
+import { useAuthStore } from '@/lib/store';
+import { apiUserToUser } from '@/lib/mappers/user';
+import type { UpdateCurrentUserPayload } from '@/lib/api-contracts/users';
 
-export function usePlaceOrder(token?: string | null) {
+export function usePlaceOrder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: {
@@ -25,47 +28,47 @@ export function usePlaceOrder(token?: string | null) {
       offeredPrice: number;
       quantity: number;
       notes?: string;
-    }) => placeOrder(payload, token),
+    }) => placeOrder(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.myOrders });
     },
   });
 }
 
-export function usePlaceBid(token?: string | null) {
+export function usePlaceBid() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { productId: string; amount: number }) => placeBid(payload, token),
+    mutationFn: (payload: { productId: string; amount: number }) => placeBid(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['market'] });
     },
   });
 }
 
-export function useAcceptOrder(token?: string | null) {
+export function useAcceptOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => acceptOrder(id, token),
+    mutationFn: (id: string) => acceptOrder(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.incomingOrders });
     },
   });
 }
 
-export function useRejectOrder(token?: string | null) {
+export function useRejectOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectOrder(id, reason, token),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => rejectOrder(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.incomingOrders });
     },
   });
 }
 
-export function useConfirmDelivery(token?: string | null) {
+export function useConfirmDelivery() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => confirmDelivery(id, token),
+    mutationFn: (id: string) => confirmDelivery(id),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.myOrders });
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
@@ -73,38 +76,37 @@ export function useConfirmDelivery(token?: string | null) {
   });
 }
 
-export function useCancelOrder(token?: string | null) {
+export function useCancelOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => cancelOrder(id, token),
+    mutationFn: (id: string) => cancelOrder(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.myOrders });
     },
   });
 }
 
-export function useUpdateOrderStatus(token?: string | null) {
+export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      updateOrderStatus(id, status, token),
+    mutationFn: ({ id, status }: { id: string; status: string }) => updateOrderStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.incomingOrders });
     },
   });
 }
 
-export function useInitiatePayment(token?: string | null) {
+export function useInitiatePayment() {
   return useMutation({
-    mutationFn: (orderId: string) => initiatePayment(orderId, token),
+    mutationFn: (orderId: string) => initiatePayment(orderId),
   });
 }
 
-export function useCreateRating(token?: string | null) {
+export function useCreateRating() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: { orderId: string; score: number; comment?: string }) =>
-      createRating(payload, token),
+      createRating(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.ratingsGiven });
       queryClient.invalidateQueries({ queryKey: queryKeys.ratingsReceived });
@@ -112,10 +114,10 @@ export function useCreateRating(token?: string | null) {
   });
 }
 
-export function useMarkAllNotificationsRead(token?: string | null) {
+export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => markAllNotificationsRead(token),
+    mutationFn: () => markAllNotificationsRead(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
       queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount });
@@ -123,24 +125,41 @@ export function useMarkAllNotificationsRead(token?: string | null) {
   });
 }
 
-export function useUpdateProfile(token?: string | null) {
+export function useUpdateProfile() {
   const queryClient = useQueryClient();
+  const setAuthSession = useAuthStore((state) => state.setAuthSession);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
+
   return useMutation({
-    mutationFn: (payload: { fullName?: string; bio?: string; phone?: string }) =>
-      updateMe(payload, token),
-    onSuccess: () => {
+    mutationFn: (payload: UpdateCurrentUserPayload) => updateMe(payload),
+    onSuccess: (apiUser) => {
+      if (accessToken) {
+        setAuthSession({ accessToken, refreshToken: refreshToken ?? '' }, apiUserToUser(apiUser));
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },
   });
 }
 
-export function usePromoteToMerchant(token?: string | null) {
+export function usePromoteToMerchant() {
+  const queryClient = useQueryClient();
+  const setAuthSession = useAuthStore((state) => state.setAuthSession);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
+
   return useMutation({
-    mutationFn: () => promoteToMerchant(token),
+    mutationFn: () => promoteToMerchant(),
+    onSuccess: (apiUser) => {
+      if (accessToken) {
+        setAuthSession({ accessToken, refreshToken: refreshToken ?? '' }, apiUserToUser(apiUser));
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    },
   });
 }
 
-export function useCreateBankAccount(token?: string | null) {
+export function useCreateBankAccount() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: {
@@ -149,7 +168,7 @@ export function useCreateBankAccount(token?: string | null) {
       accountNumber: string;
       iban?: string;
       branchName?: string;
-    }) => createBankAccount(payload, token),
+    }) => createBankAccount(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bankAccounts });
     },

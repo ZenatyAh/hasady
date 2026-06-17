@@ -1,11 +1,24 @@
 import type { ZodType } from 'zod';
 import { ApiError } from '@/lib/api-errors';
-import { useAuthStore } from '@/lib/store';
+import { getAccessToken, useAuthStore } from '@/lib/store';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+function getApiBase(): string {
+  return (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+}
+
+export { getApiBase };
 
 export function getApiMode(): 'remote' | 'mock' {
-  return API_BASE ? 'remote' : 'mock';
+  return getApiBase() ? 'remote' : 'mock';
+}
+
+function assertApiConfigured(): void {
+  if (!getApiBase()) {
+    throw new ApiError(
+      'لم يتم ضبط NEXT_PUBLIC_API_URL. أضف عنوان الـ API في ملف .env.local (مثال: https://mahaseel-production.up.railway.app/api/v1)',
+      0
+    );
+  }
 }
 
 type ApiErrorBody = {
@@ -15,10 +28,12 @@ type ApiErrorBody = {
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-type ApiRequestOptions<T> = {
+export type ApiRequestOptions<T> = {
   token?: string | null;
   schema?: ZodType<T>;
   skipAuthRedirect?: boolean;
+  /** Skip Authorization header for public endpoints */
+  public?: boolean;
 };
 
 type ApiEnvelope<T> = {
@@ -76,6 +91,12 @@ function handleUnauthorized(skipAuthRedirect?: boolean) {
   window.dispatchEvent(new CustomEvent('mahaseel:unauthorized'));
 }
 
+function resolveAuthToken(options?: ApiRequestOptions<unknown>): string | null {
+  if (options?.public) return null;
+  if (options?.token) return options.token;
+  return getAccessToken();
+}
+
 let isRefreshing = false;
 let failedQueue: { resolve: (token: string) => void; reject: (err: unknown) => void }[] = [];
 
@@ -94,30 +115,26 @@ async function apiRequest<T>({
   method,
   endpoint,
   body,
-  mock,
   options,
 }: {
   method: HttpMethod;
   endpoint: string;
   body?: unknown;
-  mock: () => Promise<T>;
   options?: ApiRequestOptions<T>;
 }): Promise<T> {
-  if (!API_BASE) {
-    return mock();
-  }
+  assertApiConfigured();
 
   const performFetch = async (tokenOverride?: string): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (body !== undefined && !(body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
     }
-    const token = tokenOverride || options?.token;
+    const token = tokenOverride ?? resolveAuthToken(options);
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    return fetch(`${API_BASE}${endpoint}`, {
+    return fetch(`${getApiBase()}${endpoint}`, {
       method,
       headers,
       body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
@@ -127,8 +144,8 @@ async function apiRequest<T>({
   let res = await performFetch();
   let payload = await readJson(res);
 
-  // Silent refresh flow
-  if (res.status === 401 && !endpoint.includes('/auth/refresh')) {
+  // Silent refresh flow (skip for public routes and the refresh endpoint itself)
+  if (res.status === 401 && !options?.public && !endpoint.includes('/auth/refresh')) {
     const authState = useAuthStore.getState();
     const refreshToken = authState.refreshToken;
 
@@ -147,7 +164,7 @@ async function apiRequest<T>({
       } else {
         isRefreshing = true;
         try {
-          const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+          const refreshRes = await fetch(`${getApiBase()}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken }),
@@ -207,60 +224,47 @@ async function apiRequest<T>({
 export function apiPost<T>(
   endpoint: string,
   body: unknown,
-  mock: () => Promise<T>,
   options?: ApiRequestOptions<T>
 ): Promise<T> {
-  return apiRequest({ method: 'POST', endpoint, body, mock, options });
+  return apiRequest({ method: 'POST', endpoint, body, options });
 }
 
-export function apiGet<T>(
-  endpoint: string,
-  mock: () => Promise<T>,
-  options?: ApiRequestOptions<T>
-): Promise<T> {
-  return apiRequest({ method: 'GET', endpoint, mock, options });
+export function apiGet<T>(endpoint: string, options?: ApiRequestOptions<T>): Promise<T> {
+  return apiRequest({ method: 'GET', endpoint, options });
 }
 
 export function apiPut<T>(
   endpoint: string,
   body: unknown,
-  mock: () => Promise<T>,
   options?: ApiRequestOptions<T>
 ): Promise<T> {
-  return apiRequest({ method: 'PUT', endpoint, body, mock, options });
+  return apiRequest({ method: 'PUT', endpoint, body, options });
 }
 
 export function apiPatch<T>(
   endpoint: string,
   body: unknown,
-  mock: () => Promise<T>,
   options?: ApiRequestOptions<T>
 ): Promise<T> {
-  return apiRequest({ method: 'PATCH', endpoint, body, mock, options });
+  return apiRequest({ method: 'PATCH', endpoint, body, options });
 }
 
-export function apiDelete<T>(
-  endpoint: string,
-  mock: () => Promise<T>,
-  options?: ApiRequestOptions<T>
-): Promise<T> {
-  return apiRequest({ method: 'DELETE', endpoint, mock, options });
+export function apiDelete<T>(endpoint: string, options?: ApiRequestOptions<T>): Promise<T> {
+  return apiRequest({ method: 'DELETE', endpoint, options });
 }
 
 export function apiUpload<T>(
   endpoint: string,
   formData: FormData,
-  mock: () => Promise<T>,
   options?: ApiRequestOptions<T>
 ): Promise<T> {
-  return apiRequest({ method: 'PATCH', endpoint, body: formData, mock, options });
+  return apiRequest({ method: 'PATCH', endpoint, body: formData, options });
 }
 
 export function apiPutUpload<T>(
   endpoint: string,
   formData: FormData,
-  mock: () => Promise<T>,
   options?: ApiRequestOptions<T>
 ): Promise<T> {
-  return apiRequest({ method: 'PUT', endpoint, body: formData, mock, options });
+  return apiRequest({ method: 'PUT', endpoint, body: formData, options });
 }

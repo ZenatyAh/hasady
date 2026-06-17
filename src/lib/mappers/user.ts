@@ -1,13 +1,17 @@
-import type { ApiUser } from '@/lib/api-contracts/auth';
+import type { CurrentUser } from '@/lib/api-contracts/users';
 import type { User } from '@/services/api/auth';
 
-export function apiUserToUser(apiUser: ApiUser): User {
+export function apiUserToUser(apiUser: CurrentUser): User {
   return {
     id: apiUser.id,
     name: apiUser.fullName ?? apiUser.email,
     email: apiUser.email,
     phone: apiUser.phone ?? '',
-    role: apiUser.role === 'MERCHANT' ? 'MERCHANT' : 'BUYER',
+    role: apiUser.role,
     profileImage: apiUser.profileImage ?? undefined,
+    bio: apiUser.bio ?? undefined,
   };
 }
+
+/** @deprecated Use apiUserToUser */
+export const mapApiUserToUser = apiUserToUser;

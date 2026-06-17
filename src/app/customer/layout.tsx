@@ -6,6 +6,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
+import { logout } from '@/lib/auth/logout';
 import { useAuthStore } from '@/lib/store';
 import { useAuthGuard } from '@/lib/use-auth-guard';
 
@@ -132,10 +133,8 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
-  const clearAuthSession = useAuthStore((state) => state.clearAuthSession);
-
-  const handleLogout = () => {
-    clearAuthSession();
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   };
 

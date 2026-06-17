@@ -25,7 +25,7 @@ export default function EditFarmPage({ params }: EditFarmPageProps) {
   useEffect(() => {
     if (!isReady || !id) return;
 
-    getFarmById(id, token)
+    getFarmById(id)
       .then((data) => {
         if (!data) {
           setError('المزرعة المطلوبة غير موجودة');
@@ -44,7 +44,7 @@ export default function EditFarmPage({ params }: EditFarmPageProps) {
 
   const handleSubmit = async (farmData: Omit<Farm, 'id' | 'status'>) => {
     if (!id) return;
-    return updateFarm(id, farmData, token);
+    return updateFarm(id, farmData);
   };
 
   if (!isReady) {

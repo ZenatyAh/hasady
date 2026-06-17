@@ -16,7 +16,6 @@ interface FarmFormProps {
 
 export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
   const router = useRouter();
-  const token = useAuthStore((state) => state.token);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(initialData?.name || '');
   const [location, setLocation] = useState(initialData?.location || '');
@@ -103,7 +102,7 @@ export function FarmForm({ initialData, onSubmit, mode }: FarmFormProps) {
 
       const farmId = initialData?.id ?? (result && 'id' in result ? result.id : undefined);
       if (farmId && pendingFile) {
-        await uploadFarmMedia(farmId, [pendingFile], token);
+        await uploadFarmMedia(farmId, [pendingFile]);
       }
       setIsModalOpen(false);
       router.push('/merchant/farms');

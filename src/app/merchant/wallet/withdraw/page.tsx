@@ -32,7 +32,7 @@ export default function WithdrawProfitsPage() {
   useEffect(() => {
     if (!isReady) return;
 
-    Promise.all([getWalletSummary(token), getDefaultBankAccount(token)])
+    Promise.all([getWalletSummary(), getDefaultBankAccount()])
       .then(([walletData, bankData]) => {
         setWallet(walletData);
         setBankAccount(bankData);
@@ -63,7 +63,7 @@ export default function WithdrawProfitsPage() {
     if (!wallet || !token) return;
     setSubmitting(true);
     try {
-      await createWithdrawalRequest(wallet.withdrawableBalance, notes, token);
+      await createWithdrawalRequest(wallet.withdrawableBalance, notes);
       setIsModalOpen(false);
       router.push('/merchant/wallet');
     } catch (err) {

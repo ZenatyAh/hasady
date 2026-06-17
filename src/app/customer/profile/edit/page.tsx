@@ -4,38 +4,32 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { updateMe } from '@/services/api/users';
-import { apiUserToUser } from '@/lib/mappers/user';
+import { useUpdateProfile } from '@/hooks/mutations';
 import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerProfileEditPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const refreshToken = useAuthStore((state) => state.refreshToken);
-  const setAuthSession = useAuthStore((state) => state.setAuthSession);
 
   const [name, setName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.phone || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bio, setBio] = useState(user?.bio || '');
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  const updateProfile = useUpdateProfile();
+
+  const resolvedName = name || user?.name || '';
+  const resolvedBio = bio || user?.bio || '';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accessToken || !user) return;
-
-    setIsSubmitting(true);
     setError('');
     try {
-      const updated = await updateMe({ fullName: name, phone }, accessToken);
-      setAuthSession({ accessToken, refreshToken: refreshToken ?? '' }, apiUserToUser(updated));
+      await updateProfile.mutateAsync({ fullName: resolvedName, bio: resolvedBio || undefined });
       setSuccess(true);
       setTimeout(() => router.push('/customer/profile'), 1000);
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -63,29 +57,41 @@ export default function CustomerProfileEditPage() {
           <label className="text-xs font-bold text-[#333333]">الاسم بالكامل</label>
           <input
             type="text"
-            value={name}
+            value={resolvedName}
             onChange={(e) => setName(e.target.value)}
             className="w-full bg-[#faf8f5] text-[#111111] py-3 px-4 rounded-xl border border-[#f0ebde] outline-none text-xs focus:border-[#265C38] transition"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-bold text-[#333333]">رقم الهاتف</label>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full bg-[#faf8f5] text-[#111111] py-3 px-4 rounded-xl border border-[#f0ebde] outline-none text-xs focus:border-[#265C38] transition text-left font-mono"
-            dir="ltr"
+          <label className="text-xs font-bold text-[#333333]">نبذة تعريفية</label>
+          <textarea
+            value={resolvedBio}
+            onChange={(e) => setBio(e.target.value)}
+            rows={3}
+            className="w-full bg-[#faf8f5] text-[#111111] py-3 px-4 rounded-xl border border-[#f0ebde] outline-none text-xs focus:border-[#265C38] transition resize-none"
           />
         </div>
 
+        {user?.phone && (
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#333333]">رقم الهاتف</label>
+            <input
+              type="tel"
+              value={user.phone}
+              readOnly
+              className="w-full bg-gray-50 text-gray-500 py-3 px-4 rounded-xl border border-[#f0ebde] outline-none text-xs text-left font-mono cursor-not-allowed"
+              dir="ltr"
+            />
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={updateProfile.isPending}
           className="w-full bg-[#265C38] hover:bg-[#1f4f2c] text-white text-xs font-bold py-3.5 rounded-xl transition disabled:opacity-50"
         >
-          {isSubmitting ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+          {updateProfile.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
         </button>
       </form>
     </div>

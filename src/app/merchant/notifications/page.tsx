@@ -11,9 +11,8 @@ import { getErrorMessage } from '@/lib/api-errors';
 
 export default function NotificationsPage() {
   const { isReady } = useAuthGuard();
-  const token = useAuthStore((state) => state.token);
-  const { data: notifications = [], isLoading, error, refetch } = useNotifications(token);
-  const markAllMutation = useMarkAllNotificationsRead(token);
+  const { data: notifications = [], isLoading, error, refetch } = useNotifications();
+  const markAllMutation = useMarkAllNotificationsRead();
 
   const markAllAsRead = async () => {
     try {

@@ -8,9 +8,8 @@ import { formatRelativeTime } from '@/lib/format-time';
 import { getErrorMessage } from '@/lib/api-errors';
 
 export default function CustomerNotificationsPage() {
-  const token = useAuthStore((state) => state.token);
-  const { data: notifications = [], isLoading, error, refetch } = useNotifications(token);
-  const markAllMutation = useMarkAllNotificationsRead(token);
+  const { data: notifications = [], isLoading, error, refetch } = useNotifications();
+  const markAllMutation = useMarkAllNotificationsRead();
 
   const handleMarkAllRead = async () => {
     try {

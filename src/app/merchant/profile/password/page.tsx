@@ -13,7 +13,6 @@ import { getErrorMessage } from '@/lib/api-errors';
 export default function EditPasswordPage() {
   const router = useRouter();
   const { isReady } = useAuthGuard();
-  const token = useAuthStore((state) => state.token);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -53,7 +52,7 @@ export default function EditPasswordPage() {
 
     setLoading(true);
     try {
-      await setUserPassword(newPassword, token);
+      await setUserPassword(newPassword);
       setSuccess('تم تحديث كلمة المرور بنجاح');
       setTimeout(() => router.push('/merchant/profile'), 1000);
     } catch (err) {

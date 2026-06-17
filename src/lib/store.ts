@@ -3,9 +3,11 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { User } from '@/services/api/auth';
+import type { Role } from '@/lib/api-contracts/users';
 
 export type OtpIntent = 'register' | 'reset';
-export type AuthRole = 'BUYER' | 'MERCHANT';
+export type AuthRole = Role;
+export type SessionStatus = 'idle' | 'restoring' | 'ready';
 
 export type AuthSessionState = {
   accessToken: string | null;
@@ -16,12 +18,14 @@ export type AuthSessionState = {
   otpIntent: OtpIntent | null;
   pendingRole: AuthRole | null;
   hasHydrated: boolean;
+  sessionStatus: SessionStatus;
   setAuthSession: (tokens: { accessToken: string; refreshToken: string }, user: User) => void;
   setPendingOtp: (email: string, intent: OtpIntent, role?: AuthRole) => void;
   clearPendingOtp: () => void;
   clearAuthSession: () => void;
   clearAllAuthState: () => void;
   setHasHydrated: (hasHydrated: boolean) => void;
+  setSessionStatus: (sessionStatus: SessionStatus) => void;
 };
 
 type PersistedAuthState = Pick<
@@ -38,6 +42,7 @@ const initialAuthState = {
   otpIntent: null,
   pendingRole: null,
   hasHydrated: false,
+  sessionStatus: 'idle' as SessionStatus,
 };
 
 export const useAuthStore = create<AuthSessionState>()(
@@ -50,18 +55,27 @@ export const useAuthStore = create<AuthSessionState>()(
           refreshToken: tokens.refreshToken,
           token: tokens.accessToken,
           user,
+          sessionStatus: 'ready',
         }),
       setPendingOtp: (email, intent, role) =>
         set({ pendingEmail: email, otpIntent: intent, pendingRole: role ?? null }),
       clearPendingOtp: () => set({ pendingEmail: null, otpIntent: null, pendingRole: null }),
       clearAuthSession: () =>
-        set({ accessToken: null, refreshToken: null, token: null, user: null }),
+        set({
+          accessToken: null,
+          refreshToken: null,
+          token: null,
+          user: null,
+          sessionStatus: 'ready',
+        }),
       clearAllAuthState: () =>
         set((state) => ({
           ...initialAuthState,
           hasHydrated: state.hasHydrated,
+          sessionStatus: 'ready',
         })),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+      setSessionStatus: (sessionStatus) => set({ sessionStatus }),
     }),
     {
       name: 'mahaseel-auth-session',
@@ -77,6 +91,11 @@ export const useAuthStore = create<AuthSessionState>()(
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        if (state?.accessToken && !state.user) {
+          state.setSessionStatus('restoring');
+        } else {
+          state?.setSessionStatus('ready');
+        }
       },
     }
   )

@@ -11,10 +11,9 @@ import { FarmForm } from '@/components/merchant/FarmForm';
 
 export default function AddFarmPage() {
   const { isReady } = useAuthGuard();
-  const token = useAuthStore((state) => state.token);
 
   const handleSubmit = async (farmData: Omit<Farm, 'id' | 'status'>) => {
-    return createFarm(farmData, token);
+    return createFarm(farmData);
   };
 
   if (!isReady) {

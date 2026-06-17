@@ -34,7 +34,7 @@ export default function CustomerBrowsePage() {
         if (selectedCategory !== 'all') filters.categoryId = selectedCategory;
         if (saleMethodFilter !== 'ALL') filters.saleMethod = saleMethodFilter;
 
-        const result = await browseMarket(filters, token);
+        const result = await browseMarket(filters);
         setCrops(result.items);
         setTotalCount(result.meta.total);
       } catch (err) {

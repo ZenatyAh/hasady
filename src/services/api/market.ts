@@ -99,149 +99,19 @@ function normalizeMarketList(data: MarketListResponse): MarketBrowseResult {
 
 /**
  * GET /market — public catalog browse.
- * Supports optional query filters; auth token is not required.
  */
-export async function browseMarket(
-  filters: MarketFilters = {},
-  token?: string | null
-): Promise<MarketBrowseResult> {
+export async function browseMarket(filters: MarketFilters = {}): Promise<MarketBrowseResult> {
   const query = buildMarketQuery(filters);
-  const data = await apiGet<MarketListResponse>(
-    `/market${query}`,
-    async () => {
-      const { getCrops } = await import('@/services/api/crops');
-      const crops = await getCrops(token);
-      let filtered = [...crops];
-
-      if (filters.q) {
-        const q = filters.q.toLowerCase();
-        filtered = filtered.filter(
-          (crop) =>
-            crop.name.toLowerCase().includes(q) ||
-            crop.farmName.toLowerCase().includes(q) ||
-            crop.description.toLowerCase().includes(q)
-        );
-      }
-
-      if (filters.categoryId) {
-        filtered = filtered.filter((crop) => crop.categoryId === filters.categoryId);
-      }
-
-      const saleMethod = normalizeSaleMethodFilter(filters.saleMethod);
-      if (saleMethod) {
-        const uiMethod = saleMethod === 'auction' ? 'AUCTION' : 'FIXED';
-        filtered = filtered.filter((crop) => crop.saleMethod === uiMethod);
-      }
-
-      if (filters.priceMin !== undefined) {
-        filtered = filtered.filter((crop) => crop.price >= filters.priceMin!);
-      }
-
-      if (filters.priceMax !== undefined) {
-        filtered = filtered.filter((crop) => crop.price <= filters.priceMax!);
-      }
-
-      if (filters.location) {
-        const location = filters.location.toLowerCase();
-        filtered = filtered.filter((crop) => crop.farmName.toLowerCase().includes(location));
-      }
-
-      if (filters.unit) {
-        const unitMap: Record<Unit, string> = {
-          kg: 'كغم',
-          ton: 'طن',
-          head: 'رأس',
-          box: 'صندوق',
-          piece: 'قطعة',
-        };
-        const expectedUnit = unitMap[filters.unit];
-        filtered = filtered.filter((crop) => crop.quantityUnit === expectedUnit);
-      }
-
-      const page = filters.page ?? DEFAULT_MARKET_PAGE;
-      const limit = filters.limit ?? DEFAULT_MARKET_LIMIT;
-      const start = (page - 1) * limit;
-      const paged = filtered.slice(start, start + limit);
-
-      return {
-        items: paged.map((crop) => ({
-          id: crop.id,
-          name: crop.name,
-          description: crop.description,
-          status: crop.status === 'SOLD' ? 'sold' : 'active',
-          saleMethod: crop.saleMethod === 'AUCTION' ? 'auction' : 'fixed',
-          quantity: crop.quantity,
-          unit: 'kg',
-          fixedPrice: crop.saleMethod === 'FIXED' ? crop.price : null,
-          auctionStartPrice: crop.saleMethod === 'AUCTION' ? crop.price : null,
-          currentBid: crop.saleMethod === 'AUCTION' ? crop.price : null,
-          deliveryMethod: 'from_farm',
-          driverPhone: crop.driverPhone,
-          driverName: crop.driverName,
-          farmId: crop.farmId,
-          categoryId: crop.categoryId ?? null,
-          media: crop.images.map((url) => ({ url })),
-          farm: {
-            id: crop.farmId,
-            displayName: crop.farmName,
-            managerName: crop.managerName,
-            contactPhone: crop.contact,
-          },
-        })),
-        total: filtered.length,
-        page,
-        limit,
-        totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
-        hasNext: start + limit < filtered.length,
-      };
-    },
-    { token }
-  );
-
+  const data = await apiGet<MarketListResponse>(`/market${query}`, { public: true });
   return normalizeMarketList(data);
 }
 
 /**
  * GET /market/:id — public product detail.
- * Auth token is not required.
  */
-export async function getMarketProduct(id: string, token?: string | null): Promise<Crop | null> {
+export async function getMarketProduct(id: string): Promise<Crop | null> {
   try {
-    const data = await apiGet<ApiProduct | null>(
-      `/market/${id}`,
-      async () => {
-        const { getCropById } = await import('@/services/api/crops');
-        const crop = await getCropById(id, token);
-        if (!crop) return null;
-
-        return {
-          id: crop.id,
-          name: crop.name,
-          description: crop.description,
-          status: crop.status === 'SOLD' ? 'sold' : 'active',
-          saleMethod: crop.saleMethod === 'AUCTION' ? 'auction' : 'fixed',
-          quantity: crop.quantity,
-          unit: 'kg',
-          fixedPrice: crop.saleMethod === 'FIXED' ? crop.price : null,
-          auctionStartPrice: crop.saleMethod === 'AUCTION' ? crop.price : null,
-          currentBid: crop.saleMethod === 'AUCTION' ? crop.price : null,
-          deliveryMethod: 'from_farm',
-          driverPhone: crop.driverPhone,
-          driverName: crop.driverName,
-          farmId: crop.farmId,
-          categoryId: crop.categoryId ?? null,
-          media: crop.images.map((url) => ({ url })),
-          farm: {
-            id: crop.farmId,
-            displayName: crop.farmName,
-            managerName: crop.managerName,
-            contactPhone: crop.contact,
-          },
-        };
-      },
-      { token }
-    );
-
+    const data = await apiGet<ApiProduct | null>(`/market/${id}`, { public: true });
     if (!data) return null;
     return productToCrop(data);
   } catch {

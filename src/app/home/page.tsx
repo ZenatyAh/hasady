@@ -4,20 +4,20 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/lib/store';
+import { logout } from '@/lib/auth/logout';
 import { useAuthGuard } from '@/lib/use-auth-guard';
 
 export default function HomePage() {
   const router = useRouter();
   const { isReady } = useAuthGuard();
   const user = useAuthStore((state) => state.user);
-  const clearAuthSession = useAuthStore((state) => state.clearAuthSession);
 
   if (!isReady) {
     return null;
   }
 
-  const handleLogout = () => {
-    clearAuthSession();
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   };
 

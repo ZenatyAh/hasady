@@ -1,102 +1,48 @@
-import { apiDelete, apiGet, apiPatch, apiUpload } from '@/lib/api-client';
-import type { ApiUser } from '@/lib/api-contracts/auth';
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from '@/lib/api-client';
+import {
+  currentUserSchema,
+  publicUserProfileSchema,
+  type CurrentUser,
+  type PublicUserProfile,
+  type UpdateCurrentUserPayload,
+} from '@/lib/api-contracts/users';
+import { messageResponseSchema } from '@/lib/api-contracts/auth';
 
-export async function getMe(token?: string | null): Promise<ApiUser> {
-  return apiGet(
-    '/users/me',
-    () =>
-      Promise.resolve({
-        id: '1',
-        email: 'demo@mahaseel.test',
-        phone: '0597450057',
-        fullName: 'مستخدم محاصيل',
-        role: 'BUYER' as const,
-      }),
-    { token }
-  );
+/** GET /users/me — full profile of authenticated user */
+export async function getMe(): Promise<CurrentUser> {
+  return apiGet('/users/me', { schema: currentUserSchema });
 }
 
-export async function updateMe(
-  payload: { fullName?: string; bio?: string; phone?: string },
-  token?: string | null
-): Promise<ApiUser> {
-  return apiPatch(
-    '/users/me',
-    payload,
-    () =>
-      Promise.resolve({
-        id: '1',
-        email: 'demo@mahaseel.test',
-        phone: payload.phone ?? '0597450057',
-        fullName: payload.fullName ?? 'مستخدم محاصيل',
-        role: 'BUYER' as const,
-        bio: payload.bio ?? null,
-      }),
-    { token }
-  );
+/** PATCH /users/me — update fullName / bio */
+export async function updateMe(payload: UpdateCurrentUserPayload): Promise<CurrentUser> {
+  return apiPatch('/users/me', payload, { schema: currentUserSchema });
 }
 
-export async function promoteToMerchant(token?: string | null): Promise<ApiUser> {
-  return apiPatch(
-    '/users/me/promote-to-merchant',
-    {},
-    () =>
-      Promise.resolve({
-        id: '1',
-        email: 'demo@mahaseel.test',
-        phone: '0597450057',
-        fullName: 'تاجر محاصيل',
-        role: 'MERCHANT' as const,
-      }),
-    { token }
-  );
+/** GET /users/:id/profile — public profile (safe fields only) */
+export async function getPublicProfile(userId: string): Promise<PublicUserProfile> {
+  return apiGet(`/users/${userId}/profile`, {
+    public: true,
+    schema: publicUserProfileSchema,
+  });
 }
 
-export async function uploadAvatar(file: File, token?: string | null): Promise<ApiUser> {
+export async function promoteToMerchant(): Promise<CurrentUser> {
+  return apiPatch('/users/me/promote-to-merchant', {}, { schema: currentUserSchema });
+}
+
+export async function uploadAvatar(file: File): Promise<CurrentUser> {
   const formData = new FormData();
   formData.append('file', file);
 
-  return apiUpload(
-    '/users/me/avatar',
-    formData,
-    () =>
-      Promise.resolve({
-        id: '1',
-        email: 'demo@mahaseel.test',
-        phone: '0597450057',
-        fullName: 'مستخدم محاصيل',
-        role: 'BUYER' as const,
-        profileImage: URL.createObjectURL(file),
-      }),
-    { token }
-  );
+  return apiUpload('/users/me/avatar', formData, { schema: currentUserSchema });
 }
 
-export async function deleteAvatar(token?: string | null): Promise<ApiUser> {
-  return apiDelete(
-    '/users/me/avatar',
-    () =>
-      Promise.resolve({
-        id: '1',
-        email: 'demo@mahaseel.test',
-        phone: '0597450057',
-        fullName: 'مستخدم محاصيل',
-        role: 'BUYER' as const,
-        profileImage: null,
-      }),
-    { token }
-  );
+export async function deleteAvatar(): Promise<CurrentUser> {
+  return apiDelete('/users/me/avatar', { schema: currentUserSchema });
 }
 
-export async function setUserPassword(
-  newPassword: string,
-  token?: string | null
-): Promise<{ message: string }> {
-  const { apiPost } = await import('@/lib/api-client');
-  return apiPost(
-    '/auth/set-password',
-    { newPassword },
-    () => Promise.resolve({ message: 'تم تغيير كلمة المرور بنجاح' }),
-    { token }
-  );
+export async function setUserPassword(newPassword: string): Promise<{ message: string }> {
+  return apiPost('/auth/set-password', { newPassword }, { schema: messageResponseSchema });
 }
+
+export type { CurrentUser, PublicUserProfile, UpdateCurrentUserPayload };

@@ -18,7 +18,7 @@ export default function CustomerOrdersPage() {
     async function loadOrders() {
       try {
         setLoading(true);
-        const data = await getMyOrders(token);
+        const data = await getMyOrders();
         setOrders(data);
       } catch (err) {
         console.error('Failed to load purchase orders:', err);

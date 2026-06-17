@@ -10,31 +10,23 @@ export interface BankAccount {
   isDefault?: boolean;
 }
 
-export async function getBankAccounts(token?: string | null): Promise<BankAccount[]> {
-  return apiGet('/bank-accounts', () => Promise.resolve([]), { token });
+export async function getBankAccounts(): Promise<BankAccount[]> {
+  return apiGet('/bank-accounts');
 }
 
-export async function createBankAccount(
-  payload: {
-    bankName: string;
-    accountHolderName: string;
-    accountNumber: string;
-    iban?: string;
-    branchName?: string;
-  },
-  token?: string | null
-): Promise<BankAccount> {
-  return apiPost(
-    '/bank-accounts',
-    payload,
-    () =>
-      Promise.resolve({
-        id: `bank-${Date.now()}`,
-        ...payload,
-        isDefault: true,
-      }),
-    { token }
-  );
+export async function getDefaultBankAccount(): Promise<BankAccount | null> {
+  const accounts = await getBankAccounts();
+  return accounts.find((a) => a.isDefault) ?? accounts[0] ?? null;
+}
+
+export async function createBankAccount(payload: {
+  bankName: string;
+  accountHolderName: string;
+  accountNumber: string;
+  iban?: string;
+  branchName?: string;
+}): Promise<BankAccount> {
+  return apiPost('/bank-accounts', payload);
 }
 
 export async function updateBankAccount(
@@ -43,50 +35,17 @@ export async function updateBankAccount(
     bankName: string;
     accountHolderName: string;
     accountNumber: string;
-    iban?: string;
-    branchName?: string;
-  }>,
-  token?: string | null
+    iban: string;
+    branchName: string;
+  }>
 ): Promise<BankAccount> {
-  return apiPatch(
-    `/bank-accounts/${id}`,
-    payload,
-    () =>
-      Promise.resolve({
-        id,
-        bankName: payload.bankName ?? 'البنك',
-        accountHolderName: payload.accountHolderName ?? 'حساب',
-        accountNumber: payload.accountNumber ?? '0000',
-        isDefault: false,
-      }),
-    { token }
-  );
+  return apiPatch(`/bank-accounts/${id}`, payload);
 }
 
-export async function setDefaultBankAccount(
-  id: string,
-  token?: string | null
-): Promise<BankAccount> {
-  return apiPatch(
-    `/bank-accounts/${id}/default`,
-    {},
-    () =>
-      Promise.resolve({
-        id,
-        bankName: 'البنك',
-        accountHolderName: 'حساب',
-        accountNumber: '0000',
-        isDefault: true,
-      }),
-    { token }
-  );
+export async function setDefaultBankAccount(id: string): Promise<BankAccount> {
+  return apiPatch(`/bank-accounts/${id}/default`, {});
 }
 
-export async function deleteBankAccount(id: string, token?: string | null): Promise<void> {
-  await apiDelete(`/bank-accounts/${id}`, () => Promise.resolve({}), { token });
-}
-
-export async function getDefaultBankAccount(token?: string | null): Promise<BankAccount | null> {
-  const accounts = await getBankAccounts(token);
-  return accounts.find((account) => account.isDefault) ?? accounts[0] ?? null;
+export async function deleteBankAccount(id: string): Promise<void> {
+  await apiDelete(`/bank-accounts/${id}`);
 }

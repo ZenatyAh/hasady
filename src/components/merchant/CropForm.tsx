@@ -19,7 +19,6 @@ interface CropFormProps {
 
 export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
   const router = useRouter();
-  const token = useAuthStore((state) => state.token);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loadingFarms, setLoadingFarms] = useState(true);
@@ -149,7 +148,7 @@ export function CropForm({ initialData, onSubmit, mode }: CropFormProps) {
 
       const cropId = initialData?.id ?? (result && 'id' in result ? result.id : undefined);
       if (cropId && pendingFiles.length > 0) {
-        await uploadProductMedia(cropId, pendingFiles, token);
+        await uploadProductMedia(cropId, pendingFiles);
       }
       setIsModalOpen(false);
       router.push('/merchant/crops');

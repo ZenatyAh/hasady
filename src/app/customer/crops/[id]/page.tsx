@@ -8,7 +8,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { getMarketProduct } from '@/services/api/market';
 import { placeOrder } from '@/services/api/orders';
 import { placeBid } from '@/services/api/auctions';
-import { useAuthStore } from '@/lib/store';
 import type { Crop } from '@/services/api/crops';
 import { CustomerCropActionCard } from './CustomerCropActionCard';
 import { CustomerCropConfirmModal } from './CustomerCropConfirmModal';
@@ -18,8 +17,6 @@ export default function CustomerCropDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const token = useAuthStore((state) => state.token);
-  const user = useAuthStore((state) => state.user);
   const [crop, setCrop] = useState<Crop | null>(null);
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState(0);
@@ -32,7 +29,7 @@ export default function CustomerCropDetailPage() {
     async function loadCrop() {
       try {
         setLoading(true);
-        const data = await getMarketProduct(id, token);
+        const data = await getMarketProduct(id);
         setCrop(data);
         if (data) setBidAmount(String(data.price + 100));
       } catch {
@@ -43,7 +40,7 @@ export default function CustomerCropDetailPage() {
     }
 
     if (id) loadCrop();
-  }, [id, token]);
+  }, [id]);
 
   if (loading) {
     return (
@@ -92,22 +89,19 @@ export default function CustomerCropDetailPage() {
   };
 
   const handleConfirmSubmit = async () => {
-    if (!token || !crop) return;
+    if (!crop) return;
 
     try {
       setIsSubmitting(true);
 
       if (isAuction) {
-        await placeBid({ productId: crop.id, amount: parseFloat(bidAmount) }, token);
+        await placeBid({ productId: crop.id, amount: parseFloat(bidAmount) });
       } else {
-        await placeOrder(
-          {
-            productId: crop.id,
-            offeredPrice: crop.price,
-            quantity: crop.quantity,
-          },
-          token
-        );
+        await placeOrder({
+          productId: crop.id,
+          offeredPrice: crop.price,
+          quantity: crop.quantity,
+        });
       }
 
       setShowConfirmModal(false);

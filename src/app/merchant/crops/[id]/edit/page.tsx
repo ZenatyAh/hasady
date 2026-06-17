@@ -25,7 +25,7 @@ export default function EditCropPage({ params }: EditCropPageProps) {
   useEffect(() => {
     if (!isReady || !id) return;
 
-    getCropById(id, token)
+    getCropById(id)
       .then((data) => {
         if (!data) {
           setError('المحصول المطلوب غير موجود');
@@ -44,7 +44,7 @@ export default function EditCropPage({ params }: EditCropPageProps) {
 
   const handleSubmit = async (cropData: Omit<Crop, 'id' | 'status'>) => {
     if (!id) return;
-    return updateCrop(id, cropData, token);
+    return updateCrop(id, cropData);
   };
 
   if (!isReady) {
