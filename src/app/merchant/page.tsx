@@ -106,7 +106,7 @@ export default function MerchantDashboard() {
     {
       title: 'متابعة الطلبات',
       description: 'متابعة الطلبات النشطة وتغيير حالتها حسب التقدم',
-      href: '/merchant/orders/track',
+      href: '/merchant/orders',
       icon: <TrackOrdersIcon />,
     },
   ];

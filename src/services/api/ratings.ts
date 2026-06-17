@@ -1,4 +1,5 @@
 import { apiGet, apiPatch, apiPost, buildQuery } from '@/lib/api-client';
+import { unwrapListItems } from '@/lib/api-list';
 
 export interface Rating {
   id: string;
@@ -19,11 +20,13 @@ export async function createRating(payload: {
 }
 
 export async function getReceivedRatings(page = 1, limit = 20): Promise<Rating[]> {
-  return apiGet(`/ratings/me${buildQuery({ page, limit })}`);
+  const data = await apiGet<unknown>(`/ratings/me${buildQuery({ page, limit })}`);
+  return unwrapListItems<Rating>(data);
 }
 
 export async function getGivenRatings(page = 1, limit = 20): Promise<Rating[]> {
-  return apiGet(`/ratings/given${buildQuery({ page, limit })}`);
+  const data = await apiGet<unknown>(`/ratings/given${buildQuery({ page, limit })}`);
+  return unwrapListItems<Rating>(data);
 }
 
 export async function updateRating(
